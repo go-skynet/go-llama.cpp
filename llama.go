@@ -2,6 +2,7 @@ package llama
 
 // #cgo CXXFLAGS: -I./llama.cpp/examples -I./llama.cpp
 // #cgo LDFLAGS: -L./ -lbinding -lm -lstdc++
+// #cgo darwin LDFLAGS: -framework Accelerate
 // #include "binding.h"
 import "C"
 import (
