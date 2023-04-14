@@ -11,10 +11,10 @@ type ModelOptions struct {
 }
 
 type PredictOptions struct {
-	Seed, Threads, Tokens, TopK, Repeat int
-	TopP, Temperature, Penalty          float64
-	F16KV                               bool
-	IgnoreEOS                           bool
+	Seed, Threads, Tokens, TopK, Repeat, Batch int
+	TopP, Temperature, Penalty                 float64
+	F16KV                                      bool
+	IgnoreEOS                                  bool
 }
 
 type PredictOption func(p *PredictOptions)
@@ -36,6 +36,7 @@ var DefaultOptions PredictOptions = PredictOptions{
 	Temperature: 0.96,
 	Penalty:     1,
 	Repeat:      64,
+	Batch:       8,
 }
 
 // SetContext sets the context size.
@@ -135,6 +136,13 @@ func SetPenalty(penalty float64) PredictOption {
 func SetRepeat(repeat int) PredictOption {
 	return func(p *PredictOptions) {
 		p.Repeat = repeat
+	}
+}
+
+// SetBatch sets the batch size.
+func SetBatch(size int) PredictOption {
+	return func(p *PredictOptions) {
+		p.Batch = size
 	}
 }
 
