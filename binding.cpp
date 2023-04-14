@@ -162,7 +162,7 @@ void llama_free_params(void* params_ptr) {
 
 
 void* llama_allocate_params(const char *prompt, int seed, int threads, int tokens, int top_k,
-                            float top_p, float temp, float repeat_penalty, int repeat_last_n, bool ignore_eos, bool memory_f16) {
+                            float top_p, float temp, float repeat_penalty, int repeat_last_n, bool ignore_eos, bool memory_f16, int n_batch) {
     gpt_params* params = new gpt_params;
     params->seed = seed;
     params->n_threads = threads;
@@ -174,6 +174,7 @@ void* llama_allocate_params(const char *prompt, int seed, int threads, int token
     params->memory_f16 = memory_f16;
     params->temp = temp;
     params->repeat_penalty = repeat_penalty;
+    params->n_batch = n_batch;
 
     params->prompt = prompt;
     params->ignore_eos = ignore_eos;
