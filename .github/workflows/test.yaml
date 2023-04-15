@@ -14,9 +14,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install build-essential
-      - name: Build
+      - name: Test
         run: |
-          make libbinding.a
+          make test
 
   macOS-latest:
     runs-on: macOS-latest
@@ -32,6 +32,6 @@ jobs:
           brew update
           brew install sdl2
 
-      - name: Build
+      - name: Test
         run: |
-          make libbinding.a
+          make test
