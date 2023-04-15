@@ -11,7 +11,7 @@ type ModelOptions struct {
 }
 
 type PredictOptions struct {
-	Seed, Threads, Tokens, TopK, Repeat, Batch int
+	Seed, Threads, Tokens, TopK, Repeat, Batch, NKeep int
 	TopP, Temperature, Penalty                 float64
 	F16KV                                      bool
 	IgnoreEOS                                  bool
@@ -37,6 +37,7 @@ var DefaultOptions PredictOptions = PredictOptions{
 	Penalty:     1,
 	Repeat:      64,
 	Batch:       8,
+	NKeep:       64,
 }
 
 // SetContext sets the context size.
@@ -143,6 +144,13 @@ func SetRepeat(repeat int) PredictOption {
 func SetBatch(size int) PredictOption {
 	return func(p *PredictOptions) {
 		p.Batch = size
+	}
+}
+
+// SetKeep sets the number of tokens from initial prompt to keep.
+func SetNKeep(n int) PredictOption {
+	return func(p *PredictOptions) {
+		p.NKeep = n
 	}
 }
 

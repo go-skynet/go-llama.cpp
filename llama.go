@@ -40,7 +40,10 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 	out := make([]byte, po.Tokens)
 
 	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
-		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat), C.bool(po.IgnoreEOS), C.bool(po.F16KV), C.int(po.Batch))
+		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat), 
+		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
+		C.int(po.Batch), C.int(po.NKeep),
+	)
 	ret := C.llama_predict(params, l.state, (*C.char)(unsafe.Pointer(&out[0])))
 	if ret != 0 {
 		return "", fmt.Errorf("inference failed")
