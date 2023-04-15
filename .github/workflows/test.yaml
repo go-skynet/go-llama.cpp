@@ -1,0 +1,37 @@
+name: CI
+on: [push, pull_request]
+
+jobs:
+  ubuntu-latest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v1
+        with: 
+          submodules: true
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install build-essential
+      - name: Build
+        run: |
+          make libbinding.a
+
+  macOS-latest:
+    runs-on: macOS-latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v1
+        with: 
+          submodules: true
+
+      - name: Dependencies
+        run: |
+          brew update
+          brew install sdl2
+
+      - name: Build
+        run: |
+          make libbinding.a
