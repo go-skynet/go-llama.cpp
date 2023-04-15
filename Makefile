@@ -1,3 +1,6 @@
+INCLUDE_PATH := $(abspath ./)
+LIBRARY_PATH := $(abspath ./)
+
 ifndef UNAME_S
 UNAME_S := $(shell uname -s)
 endif
@@ -151,3 +154,6 @@ clean:
 	rm -rf *.o
 	rm -rf *.a
 	$(MAKE) -C llama.cpp clean
+
+test: libbinding.a
+	@C_INCLUDE_PATH=${INCLUDE_PATH} LIBRARY_PATH=${LIBRARY_PATH} go test -v ./...
