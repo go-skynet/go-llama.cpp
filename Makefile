@@ -136,7 +136,8 @@ $(info I CXX:      $(CXXV))
 $(info )
 
 llama.cpp/ggml.o:
-	$(MAKE) -C llama.cpp ggml.o
+	mkdir build
+	cd build && cmake ../llama.cpp && make VERBOSE=1 ggml && cp -rf CMakeFiles/ggml.dir/ggml.c.o ../llama.cpp/ggml.o
 
 llama.cpp/llama.o:
 	$(MAKE) -C llama.cpp llama.o
@@ -150,10 +151,20 @@ binding.o: llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o
 libbinding.a: binding.o
 	ar src libbinding.a llama.cpp/ggml.o llama.cpp/common.o llama.cpp/llama.o binding.o
 
+generic-llama.cpp/ggml.o:
+	$(MAKE) -C llama.cpp ggml.o
+
+generic-binding.o: generic-llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o
+	$(CXX) $(CXXFLAGS) -I./llama.cpp -I./llama.cpp/examples binding.cpp -o binding.o -c $(LDFLAGS)
+
+generic-libbinding.a: generic-binding.o
+	ar src libbinding.a llama.cpp/ggml.o llama.cpp/common.o llama.cpp/llama.o binding.o
+
 clean:
 	rm -rf *.o
 	rm -rf *.a
 	$(MAKE) -C llama.cpp clean
+	rm -rf build
 
 test: libbinding.a
 	@C_INCLUDE_PATH=${INCLUDE_PATH} LIBRARY_PATH=${LIBRARY_PATH} go test -v ./...
