@@ -6,6 +6,8 @@ The go-llama.cpp bindings are high level, as such most of the work is kept into 
 
 Check out [this](https://about.sourcegraph.com/blog/go/gophercon-2018-adventures-in-cgo-performance) and [this](https://www.cockroachlabs.com/blog/the-cost-and-complexity-of-cgo/) write-ups which summarize the impact of a low-level interface which calls C functions from Go.
 
+If you are looking for an high-level OpenAI compatible API, check out [here](https://github.com/go-skynet/llama-cli).
+
 ## Usage
 
 Note: This repository uses git submodules to keep track of [LLama.cpp](https://github.com/ggerganov/llama.cpp).
