@@ -39,12 +39,21 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 	}
 	out := make([]byte, po.Tokens)
 
+	reverseCount := len(po.StopPrompts)
+	reversePrompt := make([]*C.char, reverseCount)
+	var pass **C.char
+	for i, s := range po.StopPrompts {
+		cs := C.CString(s)
+		reversePrompt[i] = cs
+		pass = &reversePrompt[0]
+	}
+
 	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
-		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat), 
+		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
-		C.int(po.Batch), C.int(po.NKeep),
+		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
 	)
-	ret := C.llama_predict(params, l.state, (*C.char)(unsafe.Pointer(&out[0])))
+	ret := C.llama_predict(params, l.state, (*C.char)(unsafe.Pointer(&out[0])), C.bool(po.DebugMode))
 	if ret != 0 {
 		return "", fmt.Errorf("inference failed")
 	}
@@ -53,6 +62,10 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 	res = strings.TrimPrefix(res, " ")
 	res = strings.TrimPrefix(res, text)
 	res = strings.TrimPrefix(res, "\n")
+
+	for _, s := range po.StopPrompts {
+		res = strings.TrimRight(res, s)
+	}
 
 	C.llama_free_params(params)
 

@@ -12,9 +12,11 @@ type ModelOptions struct {
 
 type PredictOptions struct {
 	Seed, Threads, Tokens, TopK, Repeat, Batch, NKeep int
-	TopP, Temperature, Penalty                 float64
-	F16KV                                      bool
-	IgnoreEOS                                  bool
+	TopP, Temperature, Penalty                        float64
+	F16KV                                             bool
+	DebugMode                                         bool
+	StopPrompts                                       []string
+	IgnoreEOS                                         bool
 }
 
 type PredictOption func(p *PredictOptions)
@@ -67,6 +69,10 @@ var EnableF16KV PredictOption = func(p *PredictOptions) {
 	p.F16KV = true
 }
 
+var Debug PredictOption = func(p *PredictOptions) {
+	p.DebugMode = true
+}
+
 var EnableMLock ModelOption = func(p *ModelOptions) {
 	p.MLock = true
 }
@@ -82,6 +88,13 @@ func NewModelOptions(opts ...ModelOption) ModelOptions {
 
 var IgnoreEOS PredictOption = func(p *PredictOptions) {
 	p.IgnoreEOS = true
+}
+
+// SetStopWords sets the prompts that will stop predictions.
+func SetStopWords(stop ...string) PredictOption {
+	return func(p *PredictOptions) {
+		p.StopPrompts = stop
+	}
 }
 
 // SetSeed sets the random seed for sampling text generation.
