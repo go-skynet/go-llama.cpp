@@ -27,7 +27,7 @@ void sigint_handler(int signo) {
 }
 #endif
 
-int llama_predict(void* params_ptr, void* state_pr, char* result) {
+int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
     gpt_params* params_p = (gpt_params*) params_ptr;
     llama_context* ctx = (llama_context*) state_pr;
   
@@ -136,6 +136,20 @@ int llama_predict(void* params_ptr, void* state_pr, char* result) {
         for (auto id : embd) {
             res += llama_token_to_str(ctx, id);
         }
+
+        // check for stop prompt
+        if (params.antiprompt.size()) {
+            std::string last_output;
+            for (auto id : last_n_tokens) {
+                last_output += llama_token_to_str(ctx, id);
+            }
+            // Check if each of the reverse prompts appears at the end of the output.
+            for (std::string & antiprompt : params.antiprompt) {
+                if (last_output.find(antiprompt.c_str(), last_output.length() - antiprompt.length(), antiprompt.length()) != std::string::npos) {
+                    goto end;
+                }
+            }
+        }
       
         // end of text token
         if (embd.back() == llama_token_eos()) {
@@ -143,9 +157,16 @@ int llama_predict(void* params_ptr, void* state_pr, char* result) {
         }
     }
 
+end:
 #if defined (_WIN32)
     signal(SIGINT, SIG_DFL);
 #endif
+
+    if (debug) {
+        llama_print_timings(ctx);
+        llama_reset_timings(ctx);
+    }
+
     strcpy(result, res.c_str()); 
     return 0;
 }
@@ -161,8 +182,20 @@ void llama_free_params(void* params_ptr) {
 }
 
 
+std::vector<std::string> create_vector(const char** strings, int count) {
+    std::vector<std::string>* vec = new std::vector<std::string>;
+    for (int i = 0; i < count; i++) {
+      vec->push_back(std::string(strings[i]));
+    }
+    return *vec;
+}
+
+void delete_vector(std::vector<std::string>* vec) {
+    delete vec;
+}
+
 void* llama_allocate_params(const char *prompt, int seed, int threads, int tokens, int top_k,
-                            float top_p, float temp, float repeat_penalty, int repeat_last_n, bool ignore_eos, bool memory_f16, int n_batch, int n_keep) {
+                            float top_p, float temp, float repeat_penalty, int repeat_last_n, bool ignore_eos, bool memory_f16, int n_batch, int n_keep, const char** antiprompt, int antiprompt_count) {
     gpt_params* params = new gpt_params;
     params->seed = seed;
     params->n_threads = threads;
@@ -177,11 +210,15 @@ void* llama_allocate_params(const char *prompt, int seed, int threads, int token
     params->n_batch = n_batch;
     params->n_keep = n_keep;
 
+    if(antiprompt_count > 0) {
+      params->antiprompt = create_vector(antiprompt, antiprompt_count);
+    }
     params->prompt = prompt;
     params->ignore_eos = ignore_eos;
     
     return params;
 }
+
 
 void* load_model(const char *fname, int n_ctx, int n_parts, int n_seed, bool memory_f16, bool mlock) {
     // load the model
