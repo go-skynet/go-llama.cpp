@@ -39,14 +39,19 @@ func main() {
 
 	reader := bufio.NewReader(os.Stdin)
 
+	l.SetTokenCallback(func(token string) bool {
+		fmt.Print(token)
+		return true
+	})
+
 	for {
 		text := readMultiLineInput(reader)
 
-		res, err := l.Predict(text, llama.Debug, llama.SetTokens(tokens), llama.SetThreads(threads), llama.SetTopK(90), llama.SetTopP(0.86), llama.SetStopWords("llama"))
+		fmt.Printf("\ngolang: ")
+		_, err := l.Predict(text, llama.Debug, llama.SetTokens(tokens), llama.SetThreads(threads), llama.SetTopK(90), llama.SetTopP(0.86), llama.SetStopWords("llama"))
 		if err != nil {
 			panic(err)
 		}
-		fmt.Printf("\ngolang: %s\n", res)
 
 		fmt.Printf("\n\n")
 	}

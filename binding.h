@@ -6,6 +6,8 @@ extern "C" {
 
 #include <stdbool.h>
 
+extern unsigned char tokenCallback(void *, char *);
+
 void* load_model(const char *fname, int n_ctx, int n_parts, int n_seed, bool memory_f16, bool mlock);
 
 void* llama_allocate_params(const char *prompt, int seed, int threads, int tokens,
