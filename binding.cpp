@@ -126,6 +126,14 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
 
             // decrement remaining sampling budget
             --n_remain;
+
+
+            // call the token callback, no need to check if one is actually registered, that will
+            // be handled on the Go side.
+            auto token_str = llama_token_to_str(ctx, id);
+            if (!tokenCallback(state_pr, (char*)token_str)) {
+                break;
+            }
         } else {
             // some user input remains from prompt or interaction, forward it to processing
             while ((int) embd_inp.size() > n_consumed) {

@@ -7,7 +7,9 @@ package llama
 import "C"
 import (
 	"fmt"
+	"runtime"
 	"strings"
+	"sync"
 	"unsafe"
 )
 
@@ -23,7 +25,14 @@ func New(model string, opts ...ModelOption) (*LLama, error) {
 		return nil, fmt.Errorf("failed loading model")
 	}
 
-	return &LLama{state: result}, nil
+	ll := &LLama{state: result}
+
+	// set a finalizer to remove any callbacks when the struct is reclaimed by the garbage collector.
+	runtime.SetFinalizer(ll, func(ll *LLama) {
+		setCallback(ll.state, nil)
+	})
+
+	return ll, nil
 }
 
 func (l *LLama) Free() {
@@ -70,4 +79,51 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 	C.llama_free_params(params)
 
 	return res, nil
+}
+
+// CGo only allows us to use static calls from C to Go, we can't just dynamically pass in func's.
+// This is the next best thing, we register the callbacks in this map and call tokenCallback from
+// the C code. We also attach a finalizer to LLama, so it will unregister the callback when the
+// garbage collection frees it.
+
+// SetTokenCallback registers a callback for the individual tokens created when running Predict. It
+// will be called once for each token. The callback shall return true as long as the model should
+// continue predicting the next token. When the callback returns false the predictor will return.
+// The tokens are just converted into Go strings, they are not trimmed or otherwise changed. Also
+// the tokens may not be valid UTF-8.
+// Pass in nil to remove a callback.
+//
+// It is save to call this method while a prediction is running.
+func (l *LLama) SetTokenCallback(callback func(token string) bool) {
+	setCallback(l.state, callback)
+}
+
+var (
+	m         sync.Mutex
+	callbacks = map[uintptr]func(string) bool{}
+)
+
+//export tokenCallback
+func tokenCallback(statePtr unsafe.Pointer, token *C.char) bool {
+	m.Lock()
+	defer m.Unlock()
+
+	if callback, ok := callbacks[uintptr(statePtr)]; ok {
+		return callback(C.GoString(token))
+	}
+
+	return true
+}
+
+// setCallback can be used to register a token callback for LLama. Pass in a nil callback to
+// remove the callback.
+func setCallback(statePtr unsafe.Pointer, callback func(string) bool) {
+	m.Lock()
+	defer m.Unlock()
+
+	if callback == nil {
+		delete(callbacks, uintptr(statePtr))
+	} else {
+		callbacks[uintptr(statePtr)] = callback
+	}
 }
