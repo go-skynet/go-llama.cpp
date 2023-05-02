@@ -1,7 +1,5 @@
 package llama
 
-import "runtime"
-
 type ModelOptions struct {
 	ContextSize int
 	Parts       int
@@ -17,9 +15,20 @@ type PredictOptions struct {
 	DebugMode                                         bool
 	StopPrompts                                       []string
 	IgnoreEOS                                         bool
+
+	TailFreeSamplingZ float64
+	TypicalP          float64
+	FrequencyPenalty  float64
+	PresencePenalty   float64
+	Mirostat          int
+	MirostatETA       float64
+	MirostatTAU       float64
+	PenalizeNL        bool
+	LogitBias         string
 }
 
 type PredictOption func(p *PredictOptions)
+
 type ModelOption func(p *ModelOptions)
 
 var DefaultModelOptions ModelOptions = ModelOptions{
@@ -30,16 +39,23 @@ var DefaultModelOptions ModelOptions = ModelOptions{
 }
 
 var DefaultOptions PredictOptions = PredictOptions{
-	Seed:        -1,
-	Threads:     runtime.NumCPU(),
-	Tokens:      128,
-	TopK:        10000,
-	TopP:        0.90,
-	Temperature: 0.96,
-	Penalty:     1,
-	Repeat:      64,
-	Batch:       8,
-	NKeep:       64,
+	Seed:              -1,
+	Threads:           4,
+	Tokens:            128,
+	Penalty:           1.1,
+	Repeat:            64,
+	Batch:             8,
+	NKeep:             64,
+	TopK:              40,
+	TopP:              0.95,
+	TailFreeSamplingZ: 1.0,
+	TypicalP:          1.0,
+	Temperature:       0.8,
+	FrequencyPenalty:  0.0,
+	PresencePenalty:   0.0,
+	Mirostat:          0,
+	MirostatTAU:       5.0,
+	MirostatETA:       0.1,
 }
 
 // SetContext sets the context size.
@@ -174,4 +190,67 @@ func NewPredictOptions(opts ...PredictOption) PredictOptions {
 		opt(&p)
 	}
 	return p
+}
+
+// SetTailFreeSamplingZ sets the tail free sampling, parameter z.
+func SetTailFreeSamplingZ(tfz float64) PredictOption {
+	return func(p *PredictOptions) {
+		p.TailFreeSamplingZ = tfz
+	}
+}
+
+// SetTypicalP sets the typicality parameter, p_typical.
+func SetTypicalP(tp float64) PredictOption {
+	return func(p *PredictOptions) {
+		p.TypicalP = tp
+	}
+}
+
+// SetFrequencyPenalty sets the frequency penalty parameter, freq_penalty.
+func SetFrequencyPenalty(fp float64) PredictOption {
+	return func(p *PredictOptions) {
+		p.FrequencyPenalty = fp
+	}
+}
+
+// SetPresencePenalty sets the presence penalty parameter, presence_penalty.
+func SetPresencePenalty(pp float64) PredictOption {
+	return func(p *PredictOptions) {
+		p.PresencePenalty = pp
+	}
+}
+
+// SetMirostat sets the mirostat parameter.
+func SetMirostat(m int) PredictOption {
+	return func(p *PredictOptions) {
+		p.Mirostat = m
+	}
+}
+
+// SetMirostatETA sets the mirostat ETA parameter.
+func SetMirostatETA(me float64) PredictOption {
+	return func(p *PredictOptions) {
+		p.MirostatETA = me
+	}
+}
+
+// SetMirostatTAU sets the mirostat TAU parameter.
+func SetMirostatTAU(mt float64) PredictOption {
+	return func(p *PredictOptions) {
+		p.MirostatTAU = mt
+	}
+}
+
+// SetPenalizeNL sets whether to penalize newlines or not.
+func SetPenalizeNL(pnl bool) PredictOption {
+	return func(p *PredictOptions) {
+		p.PenalizeNL = pnl
+	}
+}
+
+// SetLogitBias sets the logit bias parameter.
+func SetLogitBias(lb string) PredictOption {
+	return func(p *PredictOptions) {
+		p.LogitBias = lb
+	}
 }
