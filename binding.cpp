@@ -11,6 +11,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <sstream>
 
 #if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
 #include <signal.h>
@@ -99,23 +100,76 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
 
         if ((int) embd_inp.size() <= n_consumed) {
             // out of user input, sample next token
-            const int32_t top_k          = params.top_k;
-            const float   top_p          = params.top_p;
-            const float   temp           = params.temp;
-            const float   repeat_penalty = params.repeat_penalty;
+                const float   temp            = params.temp;
+            const int32_t top_k           = params.top_k <= 0 ? llama_n_vocab(ctx) : params.top_k;
+            const float   top_p           = params.top_p;
+            const float   tfs_z           = params.tfs_z;
+            const float   typical_p       = params.typical_p;
+            const int32_t repeat_last_n   = params.repeat_last_n < 0 ? n_ctx : params.repeat_last_n;
+            const float   repeat_penalty  = params.repeat_penalty;
+            const float   alpha_presence  = params.presence_penalty;
+            const float   alpha_frequency = params.frequency_penalty;
+            const int     mirostat        = params.mirostat;
+            const float   mirostat_tau    = params.mirostat_tau;
+            const float   mirostat_eta    = params.mirostat_eta;
+            const bool    penalize_nl     = params.penalize_nl;
 
             llama_token id = 0;
 
             {
                 auto logits = llama_get_logits(ctx);
+                auto n_vocab = llama_n_vocab(ctx);
 
-                if (params.ignore_eos) {
-                    logits[llama_token_eos()] = 0;
+                // Apply params.logit_bias map
+                for (auto it = params.logit_bias.begin(); it != params.logit_bias.end(); it++) {
+                    logits[it->first] += it->second;
                 }
 
-                id = llama_sample_top_p_top_k(ctx,
-                        last_n_tokens.data() + n_ctx - params.repeat_last_n,
-                        params.repeat_last_n, top_k, top_p, temp, repeat_penalty);
+                std::vector<llama_token_data> candidates;
+                candidates.reserve(n_vocab);
+                for (llama_token token_id = 0; token_id < n_vocab; token_id++) {
+                    candidates.emplace_back(llama_token_data{token_id, logits[token_id], 0.0f});
+                }
+
+                llama_token_data_array candidates_p = { candidates.data(), candidates.size(), false };
+
+                // Apply penalties
+                float nl_logit = logits[llama_token_nl()];
+                auto last_n_repeat = std::min(std::min((int)last_n_tokens.size(), repeat_last_n), n_ctx);
+                llama_sample_repetition_penalty(ctx, &candidates_p,
+                    last_n_tokens.data() + last_n_tokens.size() - last_n_repeat,
+                    last_n_repeat, repeat_penalty);
+                llama_sample_frequency_and_presence_penalties(ctx, &candidates_p,
+                    last_n_tokens.data() + last_n_tokens.size() - last_n_repeat,
+                    last_n_repeat, alpha_frequency, alpha_presence);
+                if (!penalize_nl) {
+                    logits[llama_token_nl()] = nl_logit;
+                }
+
+                if (temp <= 0) {
+                    // Greedy sampling
+                    id = llama_sample_token_greedy(ctx, &candidates_p);
+                } else {
+                    if (mirostat == 1) {
+                        static float mirostat_mu = 2.0f * mirostat_tau;
+                        const int mirostat_m = 100;
+                        llama_sample_temperature(ctx, &candidates_p, temp);
+                        id = llama_sample_token_mirostat(ctx, &candidates_p, mirostat_tau, mirostat_eta, mirostat_m, &mirostat_mu);
+                    } else if (mirostat == 2) {
+                        static float mirostat_mu = 2.0f * mirostat_tau;
+                        llama_sample_temperature(ctx, &candidates_p, temp);
+                        id = llama_sample_token_mirostat_v2(ctx, &candidates_p, mirostat_tau, mirostat_eta, &mirostat_mu);
+                    } else {
+                        // Temperature sampling
+                        llama_sample_top_k(ctx, &candidates_p, top_k);
+                        llama_sample_tail_free(ctx, &candidates_p, tfs_z);
+                        llama_sample_typical(ctx, &candidates_p, typical_p);
+                        llama_sample_top_p(ctx, &candidates_p, top_p);
+                        llama_sample_temperature(ctx, &candidates_p, temp);
+                        id = llama_sample_token(ctx, &candidates_p);
+                    }
+                }
+                // printf("`%d`", candidates_p.size);
 
                 last_n_tokens.erase(last_n_tokens.begin());
                 last_n_tokens.push_back(id);
@@ -209,7 +263,8 @@ void delete_vector(std::vector<std::string>* vec) {
 }
 
 void* llama_allocate_params(const char *prompt, int seed, int threads, int tokens, int top_k,
-                            float top_p, float temp, float repeat_penalty, int repeat_last_n, bool ignore_eos, bool memory_f16, int n_batch, int n_keep, const char** antiprompt, int antiprompt_count) {
+                            float top_p, float temp, float repeat_penalty, int repeat_last_n, bool ignore_eos, bool memory_f16, int n_batch, int n_keep, const char** antiprompt, int antiprompt_count,
+                             float tfs_z, float typical_p, float frequency_penalty, float presence_penalty, int mirostat, float mirostat_eta, float mirostat_tau, bool penalize_nl, const char *logit_bias ) {
     gpt_params* params = new gpt_params;
     params->seed = seed;
     params->n_threads = threads;
@@ -224,11 +279,28 @@ void* llama_allocate_params(const char *prompt, int seed, int threads, int token
     params->n_batch = n_batch;
     params->n_keep = n_keep;
 
+    if (ignore_eos) {
+        params->logit_bias[llama_token_eos()] = -INFINITY;
+    }
     if(antiprompt_count > 0) {
       params->antiprompt = create_vector(antiprompt, antiprompt_count);
     }
+    params->tfs_z = tfs_z;
+    params->typical_p = typical_p;
+    params->presence_penalty = presence_penalty;
+    params->mirostat = mirostat;
+    params->mirostat_eta = mirostat_eta;
+    params->mirostat_tau = mirostat_tau;
+    params->penalize_nl = penalize_nl;
+    std::stringstream ss(logit_bias);
+    llama_token key;
+    char sign;
+    std::string value_str;
+    if (ss >> key && ss >> sign && std::getline(ss, value_str) && (sign == '+' || sign == '-')) {
+        params->logit_bias[key] = std::stof(value_str) * ((sign == '-') ? -1.0f : 1.0f);
+    } 
+    params->frequency_penalty = frequency_penalty;
     params->prompt = prompt;
-    params->ignore_eos = ignore_eos;
     
     return params;
 }

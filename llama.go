@@ -3,6 +3,7 @@ package llama
 // #cgo CXXFLAGS: -I./llama.cpp/examples -I./llama.cpp
 // #cgo LDFLAGS: -L./ -lbinding -lm -lstdc++
 // #cgo darwin LDFLAGS: -framework Accelerate
+// #cgo darwin CXXFLAGS: -std=c++11
 // #include "binding.h"
 import "C"
 import (
@@ -61,6 +62,8 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
+		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
+		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
 	)
 	ret := C.llama_predict(params, l.state, (*C.char)(unsafe.Pointer(&out[0])), C.bool(po.DebugMode))
 	if ret != 0 {
