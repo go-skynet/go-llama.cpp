@@ -30,7 +30,7 @@ func main() {
 		fmt.Printf("Parsing program arguments failed: %s", err)
 		os.Exit(1)
 	}
-	l, err := llama.New(model, llama.SetContext(128), llama.SetParts(-1))
+	l, err := llama.New(model, llama.SetContext(128), llama.SetParts(-1), llama.EnableEmbeddings)
 	if err != nil {
 		fmt.Println("Loading the model failed:", err.Error())
 		os.Exit(1)
@@ -39,20 +39,21 @@ func main() {
 
 	reader := bufio.NewReader(os.Stdin)
 
-	l.SetTokenCallback(func(token string) bool {
-		fmt.Print(token)
-		return true
-	})
-
 	for {
 		text := readMultiLineInput(reader)
 
-		fmt.Printf("\ngolang: ")
-		_, err := l.Predict(text, llama.Debug, llama.SetTokens(tokens), llama.SetThreads(threads), llama.SetTopK(90), llama.SetTopP(0.86), llama.SetStopWords("llama"))
+		_, err := l.Predict(text, llama.Debug, llama.SetTokenCallback(func(token string) bool {
+			fmt.Print(token)
+			return true
+		}), llama.SetTokens(tokens), llama.SetThreads(threads), llama.SetTopK(90), llama.SetTopP(0.86), llama.SetStopWords("llama"))
 		if err != nil {
 			panic(err)
 		}
-
+		embeds, err := l.Embeddings(text)
+		if err != nil {
+			fmt.Printf("Embeddings: error %s \n", err.Error())
+		}
+		fmt.Printf("Embeddings: %v", embeds)
 		fmt.Printf("\n\n")
 	}
 }

@@ -6,6 +6,7 @@ type ModelOptions struct {
 	Seed        int
 	F16Memory   bool
 	MLock       bool
+	Embeddings  bool
 }
 
 type PredictOptions struct {
@@ -37,6 +38,7 @@ var DefaultModelOptions ModelOptions = ModelOptions{
 	Seed:        0,
 	F16Memory:   false,
 	MLock:       false,
+	Embeddings:  false,
 }
 
 var DefaultOptions PredictOptions = PredictOptions{
@@ -76,6 +78,10 @@ func SetParts(c int) ModelOption {
 	return func(p *ModelOptions) {
 		p.Parts = c
 	}
+}
+
+var EnableEmbeddings ModelOption = func(p *ModelOptions) {
+	p.Embeddings = true
 }
 
 var EnableF16Memory ModelOption = func(p *ModelOptions) {

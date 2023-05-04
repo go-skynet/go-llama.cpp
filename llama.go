@@ -14,24 +14,63 @@ import (
 )
 
 type LLama struct {
-	state unsafe.Pointer
+	state      unsafe.Pointer
+	embeddings bool
 }
 
 func New(model string, opts ...ModelOption) (*LLama, error) {
 	mo := NewModelOptions(opts...)
 	modelPath := C.CString(model)
-	result := C.load_model(modelPath, C.int(mo.ContextSize), C.int(mo.Parts), C.int(mo.Seed), C.bool(mo.F16Memory), C.bool(mo.MLock))
+	result := C.load_model(modelPath, C.int(mo.ContextSize), C.int(mo.Parts), C.int(mo.Seed), C.bool(mo.F16Memory), C.bool(mo.MLock), C.bool(mo.Embeddings))
 	if result == nil {
 		return nil, fmt.Errorf("failed loading model")
 	}
 
-	ll := &LLama{state: result}
+	ll := &LLama{state: result, embeddings: mo.Embeddings}
 
 	return ll, nil
 }
 
 func (l *LLama) Free() {
 	C.llama_free_model(l.state)
+}
+
+// Embeddings
+func (l *LLama) Embeddings(text string, opts ...PredictOption) ([]float32, error) {
+	if !l.embeddings {
+		return []float32{}, fmt.Errorf("model loaded without embeddings")
+	}
+
+	po := NewPredictOptions(opts...)
+
+	input := C.CString(text)
+	if po.Tokens == 0 {
+		po.Tokens = 99999999
+	}
+	floats := make([]float32, po.Tokens)
+	reverseCount := len(po.StopPrompts)
+	reversePrompt := make([]*C.char, reverseCount)
+	var pass **C.char
+	for i, s := range po.StopPrompts {
+		cs := C.CString(s)
+		reversePrompt[i] = cs
+		pass = &reversePrompt[0]
+	}
+
+	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
+		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
+		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
+		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
+		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
+		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
+	)
+
+	ret := C.get_embeddings(params, l.state, (*C.float)(&floats[0]))
+	if ret != 0 {
+		return floats, fmt.Errorf("embedding inference failed")
+	}
+
+	return floats, nil
 }
 
 func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
