@@ -8,7 +8,6 @@ package llama
 import "C"
 import (
 	"fmt"
-	"runtime"
 	"strings"
 	"sync"
 	"unsafe"
@@ -28,11 +27,6 @@ func New(model string, opts ...ModelOption) (*LLama, error) {
 
 	ll := &LLama{state: result}
 
-	// set a finalizer to remove any callbacks when the struct is reclaimed by the garbage collector.
-	runtime.SetFinalizer(ll, func(ll *LLama) {
-		setCallback(ll.state, nil)
-	})
-
 	return ll, nil
 }
 
@@ -42,6 +36,10 @@ func (l *LLama) Free() {
 
 func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 	po := NewPredictOptions(opts...)
+
+	if po.TokenCallback != nil {
+		setCallback(l.state, po.TokenCallback)
+	}
 
 	input := C.CString(text)
 	if po.Tokens == 0 {
@@ -80,6 +78,10 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 	}
 
 	C.llama_free_params(params)
+
+	if po.TokenCallback != nil {
+		setCallback(l.state, nil)
+	}
 
 	return res, nil
 }

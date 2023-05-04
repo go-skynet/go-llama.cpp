@@ -25,6 +25,7 @@ type PredictOptions struct {
 	MirostatTAU       float64
 	PenalizeNL        bool
 	LogitBias         string
+	TokenCallback     func(string) bool
 }
 
 type PredictOption func(p *PredictOptions)
@@ -104,6 +105,13 @@ func NewModelOptions(opts ...ModelOption) ModelOptions {
 
 var IgnoreEOS PredictOption = func(p *PredictOptions) {
 	p.IgnoreEOS = true
+}
+
+// SetTokenCallback sets the prompts that will stop predictions.
+func SetTokenCallback(fn func(string) bool) PredictOption {
+	return func(p *PredictOptions) {
+		p.TokenCallback = fn
+	}
 }
 
 // SetStopWords sets the prompts that will stop predictions.
