@@ -17,6 +17,9 @@
 #include <signal.h>
 #include <unistd.h>
 #elif defined (_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
 #include <signal.h>
 #endif
 
@@ -315,6 +318,13 @@ void* load_model(const char *fname, int n_ctx, int n_parts, int n_seed, bool mem
     lparams.seed       = n_seed;
     lparams.f16_kv     = memory_f16;
     lparams.use_mlock  = mlock;
+    void* res = nullptr;
+    try {
+        res = llama_init_from_file(fname, lparams);
+    } catch(std::runtime_error& e) {   
+        fprintf(stderr, "failed %s",e.what());
+        return res;
+    }
 
-    return llama_init_from_file(fname, lparams);
+    return res;
 }
