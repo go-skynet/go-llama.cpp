@@ -14,8 +14,9 @@ import (
 )
 
 type LLama struct {
-	state      unsafe.Pointer
-	embeddings bool
+	state       unsafe.Pointer
+	embeddings  bool
+	contextSize int
 }
 
 func New(model string, opts ...ModelOption) (*LLama, error) {
@@ -26,13 +27,44 @@ func New(model string, opts ...ModelOption) (*LLama, error) {
 		return nil, fmt.Errorf("failed loading model")
 	}
 
-	ll := &LLama{state: result, embeddings: mo.Embeddings}
+	ll := &LLama{state: result, contextSize: mo.ContextSize, embeddings: mo.Embeddings}
 
 	return ll, nil
 }
 
 func (l *LLama) Free() {
 	C.llama_free_model(l.state)
+}
+
+// Token Embeddings
+func (l *LLama) TokenEmbeddings(tokens []int, opts ...PredictOption) ([]float32, error) {
+	if !l.embeddings {
+		return []float32{}, fmt.Errorf("model loaded without embeddings")
+	}
+
+	po := NewPredictOptions(opts...)
+
+	outSize := l.contextSize
+	if po.Tokens != 0 {
+		outSize = po.Tokens
+	}
+
+	floats := make([]float32, outSize)
+
+	params := C.llama_allocate_params(C.CString(""), C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
+		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
+		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
+		C.int(po.Batch), C.int(po.NKeep), nil, C.int(0),
+		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
+		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
+	)
+
+	ret := C.get_token_embeddings(params, l.state, (*C.int)(unsafe.Pointer(&tokens[0])), C.int(len(tokens)), (*C.float)(&floats[0]))
+	if ret != 0 {
+		return floats, fmt.Errorf("embedding inference failed")
+	}
+
+	return floats, nil
 }
 
 // Embeddings
