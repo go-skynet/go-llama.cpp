@@ -42,10 +42,7 @@ int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings) {
     
     std::mt19937 rng(params.seed);
   
-    // Add a space in front of the first character to match OG llama tokenizer behavior
-    params.prompt.insert(0, 1, ' ');
-
-        int n_past = 0;
+    int n_past = 0;
 
     // Add a space in front of the first character to match OG llama tokenizer behavior
     params.prompt.insert(0, 1, ' ');
@@ -73,6 +70,26 @@ int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings) {
         
     return 0;
 }
+
+
+int get_token_embeddings(void* params_ptr, void* state_pr,  int *tokens, int tokenSize, float * res_embeddings) {
+    gpt_params* params_p = (gpt_params*) params_ptr;
+    llama_context* ctx = (llama_context*) state_pr;
+    gpt_params params = *params_p;
+ 
+    for (int i = 0; i < tokenSize; i++) {
+        auto token_str = llama_token_to_str(ctx, tokens[i]);
+        if (token_str == nullptr) {
+            continue;
+        }
+        std::vector<std::string> my_vector;
+        std::string str_token(token_str); // create a new std::string from the char*
+        params_p->prompt += str_token;
+    }
+
+  return get_embeddings(params_ptr,state_pr,res_embeddings);
+}
+
 
 int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
     gpt_params* params_p = (gpt_params*) params_ptr;
