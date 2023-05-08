@@ -12,7 +12,7 @@ void* load_model(const char *fname, int n_ctx, int n_parts, int n_seed, bool mem
 
 int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings);
 
-int get_token_embeddings(void* params_ptr, void* state_pr, const int *tokens, int tokenSize, float * res_embeddings);
+int get_token_embeddings(void* params_ptr, void* state_pr,  int *tokens, int tokenSize, float * res_embeddings);
 
 void* llama_allocate_params(const char *prompt, int seed, int threads, int tokens,
                             int top_k, float top_p, float temp, float repeat_penalty, 

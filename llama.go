@@ -44,12 +44,19 @@ func (l *LLama) TokenEmbeddings(tokens []int, opts ...PredictOption) ([]float32,
 
 	po := NewPredictOptions(opts...)
 
-	outSize := l.contextSize
-	if po.Tokens != 0 {
-		outSize = po.Tokens
+	outSize := po.Tokens
+	if po.Tokens == 0 {
+		outSize = 9999999
 	}
 
 	floats := make([]float32, outSize)
+
+	myArray := (*C.int)(C.malloc(C.size_t(len(tokens)) * C.sizeof_int))
+
+	// Copy the values from the Go slice to the C array
+	for i, v := range tokens {
+		(*[1<<31 - 1]int32)(unsafe.Pointer(myArray))[i] = int32(v)
+	}
 
 	params := C.llama_allocate_params(C.CString(""), C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
 		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
@@ -58,12 +65,10 @@ func (l *LLama) TokenEmbeddings(tokens []int, opts ...PredictOption) ([]float32,
 		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
 		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
 	)
-
-	ret := C.get_token_embeddings(params, l.state, (*C.int)(unsafe.Pointer(&tokens[0])), C.int(len(tokens)), (*C.float)(&floats[0]))
+	ret := C.get_token_embeddings(params, l.state, myArray, C.int(len(tokens)), (*C.float)(&floats[0]))
 	if ret != 0 {
 		return floats, fmt.Errorf("embedding inference failed")
 	}
-
 	return floats, nil
 }
 
