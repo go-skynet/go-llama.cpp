@@ -140,7 +140,7 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
             if (n_past + (int) embd.size() > n_ctx) {
                 const int n_left = n_past - params.n_keep;
 
-                n_past = params.n_keep;
+                n_past = std::max(1, params.n_keep);
 
                 // insert n_left/2 tokens at the start of embd from last_n_tokens
                 embd.insert(embd.begin(), last_n_tokens.begin() + n_ctx - n_left/2 - embd.size(), last_n_tokens.end() - embd.size());
@@ -224,10 +224,10 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
                         id = llama_sample_token_mirostat_v2(ctx, &candidates_p, mirostat_tau, mirostat_eta, &mirostat_mu);
                     } else {
                         // Temperature sampling
-                        llama_sample_top_k(ctx, &candidates_p, top_k);
-                        llama_sample_tail_free(ctx, &candidates_p, tfs_z);
-                        llama_sample_typical(ctx, &candidates_p, typical_p);
-                        llama_sample_top_p(ctx, &candidates_p, top_p);
+                        llama_sample_top_k(ctx, &candidates_p, top_k, 1);
+                        llama_sample_tail_free(ctx, &candidates_p, tfs_z, 1);
+                        llama_sample_typical(ctx, &candidates_p, typical_p, 1);
+                        llama_sample_top_p(ctx, &candidates_p, top_p, 1);
                         llama_sample_temperature(ctx, &candidates_p, temp);
                         id = llama_sample_token(ctx, &candidates_p);
                     }
