@@ -25,16 +25,28 @@ cd go-llama.cpp
 make libbinding.a
 ```
 
-To build with OpenBLAS, for example:
-
-```
-CMAKE_ARGS="-DLLAMA_OPENBLAS=ON" make libbinding.a
-```
-
 Now you can run the example with:
 
 ```
 LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run ./examples -m "/model/path/here" -t 14
+```
+
+## OpenBLAS accelleration
+
+To build and run with OpenBLAS, for example:
+
+```
+CMAKE_ARGS="-DLLAMA_OPENBLAS=ON" make libbinding.a
+LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run -tags openblas ./examples -m "/model/path/here" -t 14
+```
+
+## GPU
+
+To build with CuBLAS:
+
+```
+CMAKE_ARGS="-DLLAMA_CUBLAS=ON" make libbinding.a
+LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run -tags cublas ./examples -m "/model/path/here" -t 14
 ```
 
 Enjoy!
