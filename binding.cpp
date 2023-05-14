@@ -369,7 +369,7 @@ void* llama_allocate_params(const char *prompt, int seed, int threads, int token
 }
 
 
-void* load_model(const char *fname, int n_ctx, int n_parts, int n_seed, bool memory_f16, bool mlock, bool embeddings) {
+void* load_model(const char *fname, int n_ctx, int n_parts, int n_seed, bool memory_f16, bool mlock, bool embeddings, int n_gpu_layers) {
     // load the model
     auto lparams = llama_context_default_params();
 
@@ -379,6 +379,8 @@ void* load_model(const char *fname, int n_ctx, int n_parts, int n_seed, bool mem
     lparams.f16_kv     = memory_f16;
     lparams.embedding  = embeddings;
     lparams.use_mlock  = mlock;
+    lparams.n_gpu_layers = n_gpu_layers;
+    
     void* res = nullptr;
     try {
         res = llama_init_from_file(fname, lparams);

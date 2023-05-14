@@ -7,6 +7,7 @@ type ModelOptions struct {
 	F16Memory   bool
 	MLock       bool
 	Embeddings  bool
+	NGPULayers  int
 }
 
 type PredictOptions struct {
@@ -111,6 +112,13 @@ func NewModelOptions(opts ...ModelOption) ModelOptions {
 
 var IgnoreEOS PredictOption = func(p *PredictOptions) {
 	p.IgnoreEOS = true
+}
+
+// SetGPULayers sets the number of GPU layers to use to offload computation
+func SetGPULayers(n int) ModelOption {
+	return func(p *ModelOptions) {
+		p.NGPULayers = n
+	}
 }
 
 // SetTokenCallback sets the prompts that will stop predictions.

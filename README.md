@@ -25,6 +25,12 @@ cd go-llama.cpp
 make libbinding.a
 ```
 
+To build with OpenBLAS, for example:
+
+```
+CMAKE_ARGS="-DLLAMA_OPENBLAS=ON" make libbinding.a
+```
+
 Now you can run the example with:
 
 ```
