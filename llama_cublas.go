@@ -4,6 +4,6 @@
 package llama
 
 /*
-#cgo LDFLAGS: -lcublas
+#cgo LDFLAGS: -lcublas -lcudart -L/usr/local/cuda/lib64/
 */
 import "C"
