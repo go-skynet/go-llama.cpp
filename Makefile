@@ -120,10 +120,17 @@ ifneq ($(filter armv8%,$(UNAME_M)),)
 	# Raspberry Pi 4
 	CFLAGS += -mfp16-format=ieee -mno-unaligned-access
 endif
-ifeq ($(BUILD_TYPE),cuda)
+
+ifeq ($(BUILD_TYPE),cublas)
 	EXTRA_LIBS=
 	CMAKE_ARGS+="-DLLAMA_CUBLAS=ON"
 	EXTRA_TARGETS+=llama.cpp/ggml-cuda.o
+endif
+
+ifeq ($(BUILD_TYPE),openblas)
+	EXTRA_LIBS=
+	CMAKE_ARGS+="-DLLAMA_OPENBLAS=ON"
+	EXTRA_TARGETS+=
 endif
 
 #

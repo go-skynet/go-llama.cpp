@@ -36,8 +36,8 @@ LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run ./examples -m "/model/path/here" -t
 To build and run with OpenBLAS, for example:
 
 ```
-CMAKE_ARGS="-DLLAMA_OPENBLAS=ON" make libbinding.a
-LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run -tags openblas ./examples -m "/model/path/here" -t 14
+BUILD_TYPE=openblas make libbinding.a
+CGO_LDFLAGS="-lopenblas" LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run -tags openblas ./examples -m "/model/path/here" -t 14
 ```
 
 ## GPU
@@ -45,8 +45,8 @@ LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run -tags openblas ./examples -m "/mode
 To build with CuBLAS:
 
 ```
-CMAKE_ARGS="-DLLAMA_CUBLAS=ON" make libbinding.a
-LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run -tags cublas ./examples -m "/model/path/here" -t 14
+BUILD_TYPE=cublas make libbinding.a
+CGO_LDFLAGS="-lcublas -lcudart -L/usr/local/cuda/lib64/" LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run ./examples -m "/model/path/here" -t 14
 ```
 
 Enjoy!
