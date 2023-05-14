@@ -137,7 +137,7 @@ $(info )
 
 llama.cpp/ggml.o:
 	mkdir build
-	cd build && cmake ../llama.cpp && make VERBOSE=1 ggml && cp -rf CMakeFiles/ggml.dir/ggml.c.o ../llama.cpp/ggml.o
+	cd build && cmake ../llama.cpp $(CMAKE_ARGS) && make VERBOSE=1 ggml && cp -rf CMakeFiles/ggml.dir/ggml.c.o ../llama.cpp/ggml.o
 
 llama.cpp/llama.o:
 	$(MAKE) -C llama.cpp llama.o
