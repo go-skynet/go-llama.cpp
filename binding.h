@@ -8,7 +8,7 @@ extern "C" {
 
 extern unsigned char tokenCallback(void *, char *);
 
-void* load_model(const char *fname, int n_ctx, int n_parts, int n_seed, bool memory_f16, bool mlock, bool embeddings);
+void* load_model(const char *fname, int n_ctx, int n_parts, int n_seed, bool memory_f16, bool mlock, bool embeddings, int n_gpu);
 
 int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings);
 

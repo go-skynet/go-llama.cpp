@@ -33,6 +33,7 @@ endif
 # Compile flags
 #
 
+BUILD_TYPE?=
 # keep standard at C11 and C++11
 CFLAGS   = -I./llama.cpp -I. -O3 -DNDEBUG -std=c11 -fPIC
 CXXFLAGS = -I./llama.cpp -I. -I./llama.cpp/examples -I./examples -O3 -DNDEBUG -std=c++11 -fPIC
@@ -120,6 +121,18 @@ ifneq ($(filter armv8%,$(UNAME_M)),)
 	CFLAGS += -mfp16-format=ieee -mno-unaligned-access
 endif
 
+ifeq ($(BUILD_TYPE),cublas)
+	EXTRA_LIBS=
+	CMAKE_ARGS+="-DLLAMA_CUBLAS=ON"
+	EXTRA_TARGETS+=llama.cpp/ggml-cuda.o
+endif
+
+ifeq ($(BUILD_TYPE),openblas)
+	EXTRA_LIBS=
+	CMAKE_ARGS+="-DLLAMA_OPENBLAS=ON"
+	EXTRA_TARGETS+=
+endif
+
 #
 # Print build information
 #
@@ -131,13 +144,22 @@ $(info I UNAME_M:  $(UNAME_M))
 $(info I CFLAGS:   $(CFLAGS))
 $(info I CXXFLAGS: $(CXXFLAGS))
 $(info I LDFLAGS:  $(LDFLAGS))
+$(info I BUILD_TYPE:  $(BUILD_TYPE))
+$(info I CMAKE_ARGS:  $(CMAKE_ARGS))
+$(info I EXTRA_TARGETS:  $(EXTRA_TARGETS))
 $(info I CC:       $(CCV))
 $(info I CXX:      $(CXXV))
 $(info )
 
+# Use this if you want to set the default behavior
+
+
 llama.cpp/ggml.o:
 	mkdir -p build
 	cd build && cmake ../llama.cpp $(CMAKE_ARGS) && make VERBOSE=1 ggml && cp -rf CMakeFiles/ggml.dir/ggml.c.o ../llama.cpp/ggml.o
+
+llama.cpp/ggml-cuda.o: llama.cpp/ggml.o
+	cd build && cp -rf CMakeFiles/ggml.dir/ggml-cuda.cu.o ../llama.cpp/ggml-cuda.o
 
 llama.cpp/llama.o:
 	$(MAKE) -C llama.cpp llama.o
@@ -148,8 +170,8 @@ llama.cpp/common.o:
 binding.o: llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o
 	$(CXX) $(CXXFLAGS) -I./llama.cpp -I./llama.cpp/examples binding.cpp -o binding.o -c $(LDFLAGS)
 
-libbinding.a: binding.o
-	ar src libbinding.a llama.cpp/ggml.o llama.cpp/common.o llama.cpp/llama.o binding.o
+libbinding.a: binding.o $(EXTRA_TARGETS)
+	ar src libbinding.a llama.cpp/ggml.o $(EXTRA_TARGETS) llama.cpp/common.o llama.cpp/llama.o binding.o
 
 generic-llama.cpp/ggml.o:
 	$(MAKE) -C llama.cpp ggml.o

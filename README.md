@@ -31,6 +31,24 @@ Now you can run the example with:
 LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run ./examples -m "/model/path/here" -t 14
 ```
 
+## OpenBLAS accelleration
+
+To build and run with OpenBLAS, for example:
+
+```
+BUILD_TYPE=openblas make libbinding.a
+CGO_LDFLAGS="-lopenblas" LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run -tags openblas ./examples -m "/model/path/here" -t 14
+```
+
+## GPU
+
+To build with CuBLAS:
+
+```
+BUILD_TYPE=cublas make libbinding.a
+CGO_LDFLAGS="-lcublas -lcudart -L/usr/local/cuda/lib64/" LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run ./examples -m "/model/path/here" -t 14
+```
+
 Enjoy!
 
 The documentation is available [here](https://pkg.go.dev/github.com/go-skynet/go-llama.cpp) and the full example code is [here](https://github.com/go-skynet/go-llama.cpp/blob/master/examples/main.go).
