@@ -2,7 +2,6 @@ package llama
 
 type ModelOptions struct {
 	ContextSize int
-	Parts       int
 	Seed        int
 	F16Memory   bool
 	MLock       bool
@@ -72,12 +71,6 @@ func SetContext(c int) ModelOption {
 func SetModelSeed(c int) ModelOption {
 	return func(p *ModelOptions) {
 		p.Seed = c
-	}
-}
-
-func SetParts(c int) ModelOption {
-	return func(p *ModelOptions) {
-		p.Parts = c
 	}
 }
 

@@ -30,7 +30,7 @@ func main() {
 		fmt.Printf("Parsing program arguments failed: %s", err)
 		os.Exit(1)
 	}
-	l, err := llama.New(model, llama.SetContext(128), llama.SetParts(-1), llama.EnableEmbeddings)
+	l, err := llama.New(model, llama.SetContext(128), llama.EnableEmbeddings)
 	if err != nil {
 		fmt.Println("Loading the model failed:", err.Error())
 		os.Exit(1)
