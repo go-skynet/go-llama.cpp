@@ -276,7 +276,13 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
             }
             // Check if each of the reverse prompts appears at the end of the output.
             for (std::string & antiprompt : params.antiprompt) {
-                if (last_output.find(antiprompt.c_str(), last_output.length() - antiprompt.length(), antiprompt.length()) != std::string::npos) {
+                    //size_t extra_padding = params.interactive ? 0 : 2;
+                    size_t extra_padding = 2;
+                    size_t search_start_pos = last_output.length() > static_cast<size_t>(antiprompt.length() + extra_padding)
+                        ? last_output.length() - static_cast<size_t>(antiprompt.length() + extra_padding)
+                        : 0;
+
+                    if (last_output.find(antiprompt.c_str(), search_start_pos) != std::string::npos) {
                     goto end;
                 }
             }
@@ -369,12 +375,11 @@ void* llama_allocate_params(const char *prompt, int seed, int threads, int token
 }
 
 
-void* load_model(const char *fname, int n_ctx, int n_parts, int n_seed, bool memory_f16, bool mlock, bool embeddings, int n_gpu_layers) {
+void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, int n_gpu_layers) {
     // load the model
     auto lparams = llama_context_default_params();
 
     lparams.n_ctx      = n_ctx;
-    lparams.n_parts    = n_parts;
     lparams.seed       = n_seed;
     lparams.f16_kv     = memory_f16;
     lparams.embedding  = embeddings;
