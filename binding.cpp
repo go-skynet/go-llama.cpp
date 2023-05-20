@@ -41,6 +41,8 @@ int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings) {
     }
     
     std::mt19937 rng(params.seed);
+
+    llama_init_backend();
   
     int n_past = 0;
 
@@ -102,6 +104,8 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
     }
 
     std::mt19937 rng(params.seed);
+
+    llama_init_backend();
   
     // Add a space in front of the first character to match OG llama tokenizer behavior
     params.prompt.insert(0, 1, ' ');
