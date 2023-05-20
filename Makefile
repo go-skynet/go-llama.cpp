@@ -121,16 +121,20 @@ ifneq ($(filter armv8%,$(UNAME_M)),)
 	CFLAGS += -mfp16-format=ieee -mno-unaligned-access
 endif
 
-ifeq ($(BUILD_TYPE),cublas)
-	EXTRA_LIBS=
-	CMAKE_ARGS+="-DLLAMA_CUBLAS=ON"
-	EXTRA_TARGETS+=llama.cpp/ggml-cuda.o
-endif
-
 ifeq ($(BUILD_TYPE),openblas)
 	EXTRA_LIBS=
-	CMAKE_ARGS+="-DLLAMA_OPENBLAS=ON"
-	EXTRA_TARGETS+=
+	CMAKE_ARGS+=-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS -DBLAS_INCLUDE_DIRS=/usr/include/openblas
+endif
+
+ifeq ($(BUILD_TYPE),blis)
+	EXTRA_LIBS=
+	CMAKE_ARGS+=-DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=FLAME
+endif
+
+ifeq ($(BUILD_TYPE),cublas)
+	EXTRA_LIBS=
+	CMAKE_ARGS+=-DLLAMA_CUBLAS=ON
+	EXTRA_TARGETS+=llama.cpp/ggml-cuda.o
 endif
 
 #
