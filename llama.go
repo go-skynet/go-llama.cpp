@@ -8,6 +8,7 @@ package llama
 import "C"
 import (
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"unsafe"
@@ -34,6 +35,28 @@ func New(model string, opts ...ModelOption) (*LLama, error) {
 
 func (l *LLama) Free() {
 	C.llama_free_model(l.state)
+}
+
+func (l *LLama) LoadState(state string) error {
+	d := C.CString(state)
+	w := C.CString("rb")
+
+	result := C.load_state(l.state, d, w)
+	if result != 0 {
+		return fmt.Errorf("error while loading state")
+	}
+
+	return nil
+}
+
+func (l *LLama) SaveState(dst string) error {
+	d := C.CString(dst)
+	w := C.CString("wb")
+
+	C.save_state(l.state, d, w)
+
+	_, err := os.Stat(dst)
+	return err
 }
 
 // Token Embeddings

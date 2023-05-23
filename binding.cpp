@@ -335,6 +335,47 @@ void delete_vector(std::vector<std::string>* vec) {
     delete vec;
 }
 
+int load_state(void *ctx, char *statefile, char*modes) {
+    llama_context* state = (llama_context*) ctx;
+const llama_context* constState = static_cast<const llama_context*>(state);
+    const size_t state_size = llama_get_state_size(state);
+    uint8_t * state_mem = new uint8_t[state_size];
+
+  {
+        FILE *fp_read = fopen(statefile, modes);
+        if (state_size != llama_get_state_size(constState)) {
+            fprintf(stderr, "\n%s : failed to validate state size\n", __func__);
+            return 1;
+        }
+
+        const size_t ret = fread(state_mem, 1, state_size, fp_read);
+        if (ret != state_size) {
+            fprintf(stderr, "\n%s : failed to read state\n", __func__);
+            return 1;
+        }
+
+        llama_set_state_data(state, state_mem);  // could also read directly from memory mapped file
+        fclose(fp_read);
+    }
+
+    return 0;
+}
+
+void save_state(void *ctx, char *dst, char*modes) {
+    llama_context* state = (llama_context*) ctx;
+
+    const size_t state_size = llama_get_state_size(state);
+    uint8_t * state_mem = new uint8_t[state_size];
+
+    // Save state (rng, logits, embedding and kv_cache) to file
+    {
+        FILE *fp_write = fopen(dst, modes);
+        llama_copy_state_data(state, state_mem); // could also copy directly to memory mapped file
+        fwrite(state_mem, 1, state_size, fp_write);
+        fclose(fp_write);
+    }
+}
+
 void* llama_allocate_params(const char *prompt, int seed, int threads, int tokens, int top_k,
                             float top_p, float temp, float repeat_penalty, int repeat_last_n, bool ignore_eos, bool memory_f16, int n_batch, int n_keep, const char** antiprompt, int antiprompt_count,
                              float tfs_z, float typical_p, float frequency_penalty, float presence_penalty, int mirostat, float mirostat_eta, float mirostat_tau, bool penalize_nl, const char *logit_bias ) {

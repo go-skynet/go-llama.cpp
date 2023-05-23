@@ -8,6 +8,10 @@ extern "C" {
 
 extern unsigned char tokenCallback(void *, char *);
 
+int load_state(void *ctx, char *statefile, char*modes);
+
+void save_state(void *ctx, char *dst, char*modes);
+
 void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, int n_gpu);
 
 int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings);
