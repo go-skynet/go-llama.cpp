@@ -92,6 +92,24 @@ int get_token_embeddings(void* params_ptr, void* state_pr,  int *tokens, int tok
   return get_embeddings(params_ptr,state_pr,res_embeddings);
 }
 
+int eval(void* params_ptr,void* state_pr,char *text) {
+    gpt_params* params_p = (gpt_params*) params_ptr;
+    llama_context* ctx = (llama_context*) state_pr;
+
+    auto n_past = 0;
+    auto last_n_tokens_data = std::vector<llama_token>(params_p->repeat_last_n, 0);
+
+    auto tokens = std::vector<llama_token>(params_p->n_ctx);
+    auto n_prompt_tokens = llama_tokenize(ctx, text, tokens.data(), tokens.size(), true);
+
+    if (n_prompt_tokens < 1) {
+        fprintf(stderr, "%s : failed to tokenize prompt\n", __func__);
+        return 1;
+    }
+
+    // evaluate prompt
+    return llama_eval(ctx, tokens.data(), n_prompt_tokens, n_past, params_p->n_threads);
+}
 
 int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
     gpt_params* params_p = (gpt_params*) params_ptr;
@@ -333,6 +351,47 @@ std::vector<std::string> create_vector(const char** strings, int count) {
 
 void delete_vector(std::vector<std::string>* vec) {
     delete vec;
+}
+
+int load_state(void *ctx, char *statefile, char*modes) {
+    llama_context* state = (llama_context*) ctx;
+const llama_context* constState = static_cast<const llama_context*>(state);
+    const size_t state_size = llama_get_state_size(state);
+    uint8_t * state_mem = new uint8_t[state_size];
+
+  {
+        FILE *fp_read = fopen(statefile, modes);
+        if (state_size != llama_get_state_size(constState)) {
+            fprintf(stderr, "\n%s : failed to validate state size\n", __func__);
+            return 1;
+        }
+
+        const size_t ret = fread(state_mem, 1, state_size, fp_read);
+        if (ret != state_size) {
+            fprintf(stderr, "\n%s : failed to read state\n", __func__);
+            return 1;
+        }
+
+        llama_set_state_data(state, state_mem);  // could also read directly from memory mapped file
+        fclose(fp_read);
+    }
+
+    return 0;
+}
+
+void save_state(void *ctx, char *dst, char*modes) {
+    llama_context* state = (llama_context*) ctx;
+
+    const size_t state_size = llama_get_state_size(state);
+    uint8_t * state_mem = new uint8_t[state_size];
+
+    // Save state (rng, logits, embedding and kv_cache) to file
+    {
+        FILE *fp_write = fopen(dst, modes);
+        llama_copy_state_data(state, state_mem); // could also copy directly to memory mapped file
+        fwrite(state_mem, 1, state_size, fp_write);
+        fclose(fp_write);
+    }
 }
 
 void* llama_allocate_params(const char *prompt, int seed, int threads, int tokens, int top_k,

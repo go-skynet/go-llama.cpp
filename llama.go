@@ -8,6 +8,7 @@ package llama
 import "C"
 import (
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"unsafe"
@@ -34,6 +35,28 @@ func New(model string, opts ...ModelOption) (*LLama, error) {
 
 func (l *LLama) Free() {
 	C.llama_free_model(l.state)
+}
+
+func (l *LLama) LoadState(state string) error {
+	d := C.CString(state)
+	w := C.CString("rb")
+
+	result := C.load_state(l.state, d, w)
+	if result != 0 {
+		return fmt.Errorf("error while loading state")
+	}
+
+	return nil
+}
+
+func (l *LLama) SaveState(dst string) error {
+	d := C.CString(dst)
+	w := C.CString("wb")
+
+	C.save_state(l.state, d, w)
+
+	_, err := os.Stat(dst)
+	return err
 }
 
 // Token Embeddings
@@ -108,6 +131,40 @@ func (l *LLama) Embeddings(text string, opts ...PredictOption) ([]float32, error
 	}
 
 	return floats, nil
+}
+
+func (l *LLama) Eval(text string, opts ...PredictOption) error {
+	po := NewPredictOptions(opts...)
+
+	input := C.CString(text)
+	if po.Tokens == 0 {
+		po.Tokens = 99999999
+	}
+
+	reverseCount := len(po.StopPrompts)
+	reversePrompt := make([]*C.char, reverseCount)
+	var pass **C.char
+	for i, s := range po.StopPrompts {
+		cs := C.CString(s)
+		reversePrompt[i] = cs
+		pass = &reversePrompt[0]
+	}
+
+	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
+		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
+		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
+		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
+		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
+		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
+	)
+	ret := C.eval(params, l.state, input)
+	if ret != 0 {
+		return fmt.Errorf("inference failed")
+	}
+
+	C.llama_free_params(params)
+
+	return nil
 }
 
 func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
