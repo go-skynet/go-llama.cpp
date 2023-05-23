@@ -92,6 +92,24 @@ int get_token_embeddings(void* params_ptr, void* state_pr,  int *tokens, int tok
   return get_embeddings(params_ptr,state_pr,res_embeddings);
 }
 
+int eval(void* params_ptr,void* state_pr,char *text) {
+    gpt_params* params_p = (gpt_params*) params_ptr;
+    llama_context* ctx = (llama_context*) state_pr;
+
+    auto n_past = 0;
+    auto last_n_tokens_data = std::vector<llama_token>(params_p->repeat_last_n, 0);
+
+    auto tokens = std::vector<llama_token>(params_p->n_ctx);
+    auto n_prompt_tokens = llama_tokenize(ctx, text, tokens.data(), tokens.size(), true);
+
+    if (n_prompt_tokens < 1) {
+        fprintf(stderr, "%s : failed to tokenize prompt\n", __func__);
+        return 1;
+    }
+
+    // evaluate prompt
+    return llama_eval(ctx, tokens.data(), n_prompt_tokens, n_past, params_p->n_threads);
+}
 
 int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
     gpt_params* params_p = (gpt_params*) params_ptr;
