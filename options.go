@@ -27,6 +27,9 @@ type PredictOptions struct {
 	PenalizeNL        bool
 	LogitBias         string
 	TokenCallback     func(string) bool
+
+	PathPromptCache string
+	PromptCacheAll  bool
 }
 
 type PredictOption func(p *PredictOptions)
@@ -88,6 +91,10 @@ var EnableF16KV PredictOption = func(p *PredictOptions) {
 
 var Debug PredictOption = func(p *PredictOptions) {
 	p.DebugMode = true
+}
+
+var EnablePromptCacheAll PredictOption = func(p *PredictOptions) {
+	p.PromptCacheAll = true
 }
 
 var EnableMLock ModelOption = func(p *ModelOptions) {
@@ -167,6 +174,13 @@ func SetTopP(topp float64) PredictOption {
 func SetTemperature(temp float64) PredictOption {
 	return func(p *PredictOptions) {
 		p.Temperature = temp
+	}
+}
+
+// SetPathPromptCache sets the session file to store the prompt cache.
+func SetPathPromptCache(f string) PredictOption {
+	return func(p *PredictOptions) {
+		p.PathPromptCache = f
 	}
 }
 
