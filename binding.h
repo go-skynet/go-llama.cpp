@@ -24,8 +24,7 @@ void* llama_allocate_params(const char *prompt, int seed, int threads, int token
                             int top_k, float top_p, float temp, float repeat_penalty, 
                             int repeat_last_n, bool ignore_eos, bool memory_f16, 
                             int n_batch, int n_keep, const char** antiprompt, int antiprompt_count,
-                            float tfs_z, float typical_p, float frequency_penalty, float presence_penalty, int mirostat, float mirostat_eta, float mirostat_tau, bool penalize_nl, const char *logit_bias);
-
+                            float tfs_z, float typical_p, float frequency_penalty, float presence_penalty, int mirostat, float mirostat_eta, float mirostat_tau, bool penalize_nl, const char *logit_bias, const char *session_file, bool prompt_cache_all);
 
 void llama_free_params(void* params_ptr);
 
