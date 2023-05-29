@@ -137,6 +137,16 @@ ifeq ($(BUILD_TYPE),cublas)
 	EXTRA_TARGETS+=llama.cpp/ggml-cuda.o
 endif
 
+ifeq ($(BUILD_TYPE),clblas)
+	EXTRA_LIBS=
+	CMAKE_ARGS+=-DLLAMA_CLBLAST=ON
+	EXTRA_TARGETS+=llama.cpp/ggml-opencl.o
+endif
+
+ifdef CLBLAST_DIR
+	CMAKE_ARGS+=-DCLBlast_dir=$(CLBLAST_DIR)
+endif
+
 #
 # Print build information
 #
@@ -164,6 +174,9 @@ llama.cpp/ggml.o:
 
 llama.cpp/ggml-cuda.o: llama.cpp/ggml.o
 	cd build && cp -rf CMakeFiles/ggml.dir/ggml-cuda.cu.o ../llama.cpp/ggml-cuda.o
+
+llama.cpp/ggml-opencl.o: llama.cpp/ggml.o
+	cd build && cp -rf CMakeFiles/ggml.dir/ggml-opencl.cpp.o ../llama.cpp/ggml-opencl.o
 
 llama.cpp/llama.o:
 	$(MAKE) -C llama.cpp llama.o
