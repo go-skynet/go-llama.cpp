@@ -258,6 +258,12 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
                     }
                 }
                 if (i > 0) {
+                    // check if we've used up all the prompt but not all cached tokens
+                    if (embd.size() == i && n_session_consumed < (int) session_tokens.size()) {
+                        // force revaluation of the last token to recalculate logits
+                        i--;
+                        n_past--;
+                    }
                     embd.erase(embd.begin(), embd.begin() + i);
                 }
             }
