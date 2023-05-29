@@ -31,7 +31,9 @@ Now you can run the example with:
 LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run ./examples -m "/model/path/here" -t 14
 ```
 
-## OpenBLAS accelleration
+## Acceleration
+
+### OpenBLAS
 
 To build and run with OpenBLAS, for example:
 
@@ -40,13 +42,28 @@ BUILD_TYPE=openblas make libbinding.a
 CGO_LDFLAGS="-lopenblas" LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run -tags openblas ./examples -m "/model/path/here" -t 14
 ```
 
-## GPU
+### CuBLAS
 
 To build with CuBLAS:
 
 ```
 BUILD_TYPE=cublas make libbinding.a
 CGO_LDFLAGS="-lcublas -lcudart -L/usr/local/cuda/lib64/" LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run ./examples -m "/model/path/here" -t 14
+```
+
+### OpenCL
+
+```
+BUILD_TYPE=clblas CLBLAS_DIR=... make libbinding.a
+CGO_LDFLAGS="-lOpenCL -lclblast -L/usr/local/lib64/" LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run ./examples -m "/model/path/here" -t 14
+```
+
+You should see something like this from the output when using the GPU:
+
+```
+ggml_opencl: selecting platform: 'Intel(R) OpenCL HD Graphics'                                            
+ggml_opencl: selecting device: 'Intel(R) Graphics [0x46a6]'                                               
+ggml_opencl: device FP16 support: true  
 ```
 
 Enjoy!
