@@ -117,6 +117,8 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
   
     gpt_params params = *params_p;
 
+    const int n_ctx = llama_n_ctx(ctx);
+
     if (params.seed <= 0) {
         params.seed = time(NULL);
     }
@@ -125,7 +127,7 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
 
     llama_init_backend();
 
-        std::string path_session = params.path_prompt_cache;
+    std::string path_session = params.path_prompt_cache;
     std::vector<llama_token> session_tokens;
 
     if (!path_session.empty()) {
@@ -137,7 +139,7 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
         if (fp != NULL) {
             std::fclose(fp);
 
-            session_tokens.resize(params.n_ctx);
+            session_tokens.resize(n_ctx);
             size_t n_token_count_out = 0;
             if (!llama_load_session_file(ctx, path_session.c_str(), session_tokens.data(), session_tokens.capacity(), &n_token_count_out)) {
                 fprintf(stderr, "%s: error: failed to load session file '%s'\n", __func__, path_session.c_str());
@@ -164,8 +166,6 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
     } else {
         embd_inp = session_tokens;
     }
-
-    const int n_ctx = llama_n_ctx(ctx);
 
     // debug message about similarity of saved session, if applicable
     size_t n_matching_session_tokens = 0;
