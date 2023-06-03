@@ -158,7 +158,7 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
     }
 
     std::vector<llama_token> embd_inp;
-    if (session_tokens.empty()) {
+    if ( !params.prompt.empty() || session_tokens.empty() ) {
         // Add a space in front of the first character to match OG llama tokenizer behavior
         params.prompt.insert(0, 1, ' ');
 
@@ -190,7 +190,12 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
             }
         }
     }
-
+    // if we will use the cache for the full prompt without reaching the end of the cache, force
+    // reevaluation of the last token token to recalculate the cached logits
+    if (!embd_inp.empty() && n_matching_session_tokens == embd_inp.size() &&
+            session_tokens.size() > embd_inp.size()) {
+        session_tokens.resize(embd_inp.size() - 1);
+    }
     // number of tokens to keep when resetting context
     if (params.n_keep < 0 || params.n_keep > (int)embd_inp.size() || params.instruct) {
         params.n_keep = (int)embd_inp.size();
@@ -258,12 +263,6 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
                     }
                 }
                 if (i > 0) {
-                    // check if we've used up all the prompt but not all cached tokens
-                    if (embd.size() == i && n_session_consumed < (int) session_tokens.size()) {
-                        // force revaluation of the last token to recalculate logits
-                        i--;
-                        n_past--;
-                    }
                     embd.erase(embd.begin(), embd.begin() + i);
                 }
             }
