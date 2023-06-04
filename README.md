@@ -58,12 +58,22 @@ BUILD_TYPE=clblas CLBLAS_DIR=... make libbinding.a
 CGO_LDFLAGS="-lOpenCL -lclblast -L/usr/local/lib64/" LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run ./examples -m "/model/path/here" -t 14
 ```
 
+
 You should see something like this from the output when using the GPU:
 
 ```
 ggml_opencl: selecting platform: 'Intel(R) OpenCL HD Graphics'                                            
 ggml_opencl: selecting device: 'Intel(R) Graphics [0x46a6]'                                               
 ggml_opencl: device FP16 support: true  
+```
+
+## GPU offloading
+
+### Metal (Apple Silicon)
+
+```
+BUILD_TYPE=metal make libbinding.a
+CGO_LDFLAGS="-framework Foundation -framework Metal -framework MetalKit -framework MetalPerformanceShaders" LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run ./examples -m "/model/path/here" -t 14
 ```
 
 Enjoy!

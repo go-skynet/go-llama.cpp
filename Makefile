@@ -143,6 +143,12 @@ ifeq ($(BUILD_TYPE),clblas)
 	EXTRA_TARGETS+=llama.cpp/ggml-opencl.o
 endif
 
+ifeq ($(BUILD_TYPE),metal)
+	EXTRA_LIBS=
+	CMAKE_ARGS+=-DLLAMA_METAL=ON
+	EXTRA_TARGETS+=llama.cpp/ggml-metal.o
+endif
+
 ifdef CLBLAST_DIR
 	CMAKE_ARGS+=-DCLBlast_dir=$(CLBLAST_DIR)
 endif
@@ -177,6 +183,9 @@ llama.cpp/ggml-cuda.o: llama.cpp/ggml.o
 
 llama.cpp/ggml-opencl.o: llama.cpp/ggml.o
 	cd build && cp -rf CMakeFiles/ggml.dir/ggml-opencl.cpp.o ../llama.cpp/ggml-opencl.o
+
+llama.cpp/ggml-metal.o: llama.cpp/ggml.o
+	cd build && cp -rf CMakeFiles/ggml.dir/ggml-metal.m.o ../llama.cpp/ggml-metal.o
 
 llama.cpp/llama.o:
 	$(MAKE) -C llama.cpp llama.o
