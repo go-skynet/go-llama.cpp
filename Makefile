@@ -185,7 +185,7 @@ llama.cpp/ggml-opencl.o: llama.cpp/ggml.o
 	cd build && cp -rf CMakeFiles/ggml.dir/ggml-opencl.cpp.o ../llama.cpp/ggml-opencl.o
 
 llama.cpp/ggml-metal.o: llama.cpp/ggml.o
-	cd build && cp -rf CMakeFiles/ggml.dir/ggml-metal.metal.o ../llama.cpp/ggml-metal.o
+	cd build && cp -rf CMakeFiles/ggml.dir/ggml-metal.m.o ../llama.cpp/ggml-metal.o
 
 llama.cpp/llama.o:
 	$(MAKE) -C llama.cpp llama.o
