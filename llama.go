@@ -23,7 +23,7 @@ type LLama struct {
 func New(model string, opts ...ModelOption) (*LLama, error) {
 	mo := NewModelOptions(opts...)
 	modelPath := C.CString(model)
-	result := C.load_model(modelPath, C.int(mo.ContextSize), C.int(mo.Seed), C.bool(mo.F16Memory), C.bool(mo.MLock), C.bool(mo.Embeddings), C.int(mo.NGPULayers))
+	result := C.load_model(modelPath, C.int(mo.ContextSize), C.int(mo.Seed), C.bool(mo.F16Memory), C.bool(mo.MLock), C.bool(mo.Embeddings), C.bool(mo.MMap), C.int(mo.NGPULayers), C.int(mo.NBatch), C.CString(mo.MainGPU), C.CString(mo.TensorSplit))
 	if result == nil {
 		return nil, fmt.Errorf("failed loading model")
 	}
@@ -87,7 +87,8 @@ func (l *LLama) TokenEmbeddings(tokens []int, opts ...PredictOption) ([]float32,
 		C.int(po.Batch), C.int(po.NKeep), nil, C.int(0),
 		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
 		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
-		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll),
+		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
+		C.CString(po.MainGPU), C.CString(po.TensorSplit),
 	)
 	ret := C.get_token_embeddings(params, l.state, myArray, C.int(len(tokens)), (*C.float)(&floats[0]))
 	if ret != 0 {
@@ -124,7 +125,8 @@ func (l *LLama) Embeddings(text string, opts ...PredictOption) ([]float32, error
 		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
 		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
 		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
-		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll),
+		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
+		C.CString(po.MainGPU), C.CString(po.TensorSplit),
 	)
 
 	ret := C.get_embeddings(params, l.state, (*C.float)(&floats[0]))
@@ -158,7 +160,8 @@ func (l *LLama) Eval(text string, opts ...PredictOption) error {
 		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
 		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
 		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
-		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll),
+		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
+		C.CString(po.MainGPU), C.CString(po.TensorSplit),
 	)
 	ret := C.eval(params, l.state, input)
 	if ret != 0 {
@@ -198,7 +201,8 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
 		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
 		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
-		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll),
+		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
+		C.CString(po.MainGPU), C.CString(po.TensorSplit),
 	)
 	ret := C.llama_predict(params, l.state, (*C.char)(unsafe.Pointer(&out[0])), C.bool(po.DebugMode))
 	if ret != 0 {

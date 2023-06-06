@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
-
+#include <regex>
 #if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
 #include <signal.h>
 #include <unistd.h>
@@ -515,7 +515,8 @@ void save_state(void *ctx, char *dst, char*modes) {
 
 void* llama_allocate_params(const char *prompt, int seed, int threads, int tokens, int top_k,
                             float top_p, float temp, float repeat_penalty, int repeat_last_n, bool ignore_eos, bool memory_f16, int n_batch, int n_keep, const char** antiprompt, int antiprompt_count,
-                             float tfs_z, float typical_p, float frequency_penalty, float presence_penalty, int mirostat, float mirostat_eta, float mirostat_tau, bool penalize_nl, const char *logit_bias, const char *session_file, bool prompt_cache_all ) {
+                             float tfs_z, float typical_p, float frequency_penalty, float presence_penalty, int mirostat, float mirostat_eta, float mirostat_tau, bool penalize_nl, const char *logit_bias, const char *session_file, bool prompt_cache_all, bool mlock, bool mmap,
+                             const char *maingpu,const char *tensorsplit ) {
     gpt_params* params = new gpt_params;
     params->seed = seed;
     params->n_threads = threads;
@@ -526,9 +527,31 @@ void* llama_allocate_params(const char *prompt, int seed, int threads, int token
     params->top_p = top_p;
     params->memory_f16 = memory_f16;
     params->temp = temp;
+    params->use_mmap = mmap;
+    params->use_mlock = mlock;
     params->repeat_penalty = repeat_penalty;
     params->n_batch = n_batch;
     params->n_keep = n_keep;
+    if (maingpu[0] != '\0') { 
+        params->main_gpu = std::stoi(maingpu);
+    }
+
+    if (tensorsplit[0] != '\0') { 
+        std::string arg_next = tensorsplit;
+            // split string by , and /
+            const std::regex regex{R"([,/]+)"};
+            std::sregex_token_iterator it{arg_next.begin(), arg_next.end(), regex, -1};
+            std::vector<std::string> split_arg{it, {}};
+            GGML_ASSERT(split_arg.size() <= LLAMA_MAX_DEVICES);
+
+            for (size_t i = 0; i < LLAMA_MAX_DEVICES; ++i) {
+                if (i < split_arg.size()) {
+                    params->tensor_split[i] = std::stof(split_arg[i]);
+                } else {
+                    params->tensor_split[i] = 0.0f;
+                }
+            }  
+    }
 
     params->prompt_cache_all = prompt_cache_all;
     params->path_prompt_cache = session_file;
@@ -560,7 +583,7 @@ void* llama_allocate_params(const char *prompt, int seed, int threads, int token
 }
 
 
-void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, int n_gpu_layers) {
+void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit) {
     // load the model
     auto lparams = llama_context_default_params();
 
@@ -570,7 +593,31 @@ void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool
     lparams.embedding  = embeddings;
     lparams.use_mlock  = mlock;
     lparams.n_gpu_layers = n_gpu_layers;
-    
+    lparams.use_mmap = mmap;
+
+    if (maingpu[0] != '\0') { 
+        lparams.main_gpu = std::stoi(maingpu);
+    }
+
+    if (tensorsplit[0] != '\0') { 
+        std::string arg_next = tensorsplit;
+            // split string by , and /
+            const std::regex regex{R"([,/]+)"};
+            std::sregex_token_iterator it{arg_next.begin(), arg_next.end(), regex, -1};
+            std::vector<std::string> split_arg{it, {}};
+            GGML_ASSERT(split_arg.size() <= LLAMA_MAX_DEVICES);
+
+            for (size_t i = 0; i < LLAMA_MAX_DEVICES; ++i) {
+                if (i < split_arg.size()) {
+                    lparams.tensor_split[i] = std::stof(split_arg[i]);
+                } else {
+                    lparams.tensor_split[i] = 0.0f;
+                }
+            }  
+    }
+
+    lparams.n_batch      = n_batch;
+
     void* res = nullptr;
     try {
         res = llama_init_from_file(fname, lparams);
