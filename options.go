@@ -3,10 +3,14 @@ package llama
 type ModelOptions struct {
 	ContextSize int
 	Seed        int
+	NBatch      int
 	F16Memory   bool
 	MLock       bool
+	MMap        bool
 	Embeddings  bool
 	NGPULayers  int
+	MainGPU     string
+	TensorSplit string
 }
 
 type PredictOptions struct {
@@ -28,8 +32,11 @@ type PredictOptions struct {
 	LogitBias         string
 	TokenCallback     func(string) bool
 
-	PathPromptCache string
-	PromptCacheAll  bool
+	PathPromptCache             string
+	MLock, MMap, PromptCacheAll bool
+
+	MainGPU     string
+	TensorSplit string
 }
 
 type PredictOption func(p *PredictOptions)
@@ -42,6 +49,7 @@ var DefaultModelOptions ModelOptions = ModelOptions{
 	F16Memory:   false,
 	MLock:       false,
 	Embeddings:  false,
+	MMap:        true,
 }
 
 var DefaultOptions PredictOptions = PredictOptions{
@@ -62,6 +70,7 @@ var DefaultOptions PredictOptions = PredictOptions{
 	Mirostat:          0,
 	MirostatTAU:       5.0,
 	MirostatETA:       0.1,
+	MMap:              true,
 }
 
 // SetContext sets the context size.
@@ -74,6 +83,48 @@ func SetContext(c int) ModelOption {
 func SetModelSeed(c int) ModelOption {
 	return func(p *ModelOptions) {
 		p.Seed = c
+	}
+}
+
+// SetContext sets the context size.
+func SetMMap(b bool) ModelOption {
+	return func(p *ModelOptions) {
+		p.MMap = b
+	}
+}
+
+// SetNBatch sets the  n_Batch
+func SetNBatch(n_batch int) ModelOption {
+	return func(p *ModelOptions) {
+		p.NBatch = n_batch
+	}
+}
+
+// Set sets the tensor split for the GPU
+func SetTensorSplit(maingpu string) ModelOption {
+	return func(p *ModelOptions) {
+		p.TensorSplit = maingpu
+	}
+}
+
+// SetMainGPU sets the main_gpu
+func SetMainGPU(maingpu string) ModelOption {
+	return func(p *ModelOptions) {
+		p.MainGPU = maingpu
+	}
+}
+
+// SetPredictionTensorSplit sets the tensor split for the GPU
+func SetPredictionTensorSplit(maingpu string) PredictOption {
+	return func(p *PredictOptions) {
+		p.TensorSplit = maingpu
+	}
+}
+
+// SetPredictionMainGPU sets the main_gpu
+func SetPredictionMainGPU(maingpu string) PredictOption {
+	return func(p *PredictOptions) {
+		p.MainGPU = maingpu
 	}
 }
 
@@ -112,6 +163,20 @@ func NewModelOptions(opts ...ModelOption) ModelOptions {
 
 var IgnoreEOS PredictOption = func(p *PredictOptions) {
 	p.IgnoreEOS = true
+}
+
+// SetMlock sets the memory lock.
+func SetMlock(b bool) PredictOption {
+	return func(p *PredictOptions) {
+		p.MLock = b
+	}
+}
+
+// SetMemoryMap sets memory mapping.
+func SetMemoryMap(b bool) PredictOption {
+	return func(p *PredictOptions) {
+		p.MMap = b
+	}
 }
 
 // SetGPULayers sets the number of GPU layers to use to offload computation
