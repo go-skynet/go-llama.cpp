@@ -187,8 +187,8 @@ llama.cpp/ggml-opencl.o: llama.cpp/ggml.o
 llama.cpp/ggml-metal.o: llama.cpp/ggml-metal.o
 	cd build && cp -rf CMakeFiles/ggml.dir/ggml-metal.m.o ../llama.cpp/ggml-metal.o
 
-llama.cpp/ggml-quants.o: llama.cpp/ggml.o
-	cd build && cp -rf CMakeFiles/ggml.dir/ggml-quants-k.c.o ../llama.cpp/ggml-quants.o
+llama.cpp/k_quants.o: llama.cpp/ggml.o
+	cd build && cp -rf CMakeFiles/ggml.dir/k_quants.c.o ../llama.cpp/k_quants.o
 
 llama.cpp/llama.o:
 	$(MAKE) -C llama.cpp llama.o
@@ -199,8 +199,8 @@ llama.cpp/common.o:
 binding.o: llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o
 	$(CXX) $(CXXFLAGS) -I./llama.cpp -I./llama.cpp/examples binding.cpp -o binding.o -c $(LDFLAGS)
 
-libbinding.a: binding.o llama.cpp/ggml-quants.o $(EXTRA_TARGETS)
-	ar src libbinding.a llama.cpp/ggml.o llama.cpp/ggml-quants.o $(EXTRA_TARGETS) llama.cpp/common.o llama.cpp/llama.o binding.o
+libbinding.a: binding.o llama.cpp/k_quants.o $(EXTRA_TARGETS)
+	ar src libbinding.a llama.cpp/ggml.o llama.cpp/k_quants.o $(EXTRA_TARGETS) llama.cpp/common.o llama.cpp/llama.o binding.o
 clean:
 	rm -rf *.o
 	rm -rf *.a
