@@ -34,9 +34,9 @@ type PredictOptions struct {
 
 	PathPromptCache             string
 	MLock, MMap, PromptCacheAll bool
-
-	MainGPU     string
-	TensorSplit string
+	PromptCacheRO               bool
+	MainGPU                     string
+	TensorSplit                 string
 }
 
 type PredictOption func(p *PredictOptions)
@@ -146,6 +146,10 @@ var Debug PredictOption = func(p *PredictOptions) {
 
 var EnablePromptCacheAll PredictOption = func(p *PredictOptions) {
 	p.PromptCacheAll = true
+}
+
+var EnablePromptCacheRO PredictOption = func(p *PredictOptions) {
+	p.PromptCacheRO = true
 }
 
 var EnableMLock ModelOption = func(p *ModelOptions) {

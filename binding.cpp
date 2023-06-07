@@ -306,7 +306,7 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
             const bool    penalize_nl     = params.penalize_nl;
 
             // optionally save the session on first sample (for faster prompt loading next time)
-            if (!path_session.empty() && need_to_save_session) {
+            if (!path_session.empty() && need_to_save_session && !params.prompt_cache_ro) {
                 need_to_save_session = false;
                 llama_save_session_file(ctx, path_session.c_str(), session_tokens.data(), session_tokens.size());
             }
@@ -428,7 +428,7 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
         }
     }
 
-    if (!path_session.empty() && params.prompt_cache_all) {
+    if (!path_session.empty() && params.prompt_cache_all && !params.prompt_cache_ro) {
         if (debug) {
             fprintf(stderr, "\n%s: saving final output to session file '%s'\n", __func__, path_session.c_str());
         }
@@ -516,13 +516,13 @@ void save_state(void *ctx, char *dst, char*modes) {
 void* llama_allocate_params(const char *prompt, int seed, int threads, int tokens, int top_k,
                             float top_p, float temp, float repeat_penalty, int repeat_last_n, bool ignore_eos, bool memory_f16, int n_batch, int n_keep, const char** antiprompt, int antiprompt_count,
                              float tfs_z, float typical_p, float frequency_penalty, float presence_penalty, int mirostat, float mirostat_eta, float mirostat_tau, bool penalize_nl, const char *logit_bias, const char *session_file, bool prompt_cache_all, bool mlock, bool mmap,
-                             const char *maingpu,const char *tensorsplit ) {
+                             const char *maingpu,const char *tensorsplit , bool prompt_cache_ro) {
     gpt_params* params = new gpt_params;
     params->seed = seed;
     params->n_threads = threads;
     params->n_predict = tokens;
     params->repeat_last_n = repeat_last_n;
-
+    params->prompt_cache_ro = prompt_cache_ro;
     params->top_k = top_k;
     params->top_p = top_p;
     params->memory_f16 = memory_f16;
