@@ -184,7 +184,7 @@ llama.cpp/ggml-cuda.o: llama.cpp/ggml.o
 llama.cpp/ggml-opencl.o: llama.cpp/ggml.o
 	cd build && cp -rf CMakeFiles/ggml.dir/ggml-opencl.cpp.o ../llama.cpp/ggml-opencl.o
 
-llama.cpp/ggml-metal.o: llama.cpp/ggml-metal.o
+llama.cpp/ggml-metal.o: llama.cpp/ggml.o
 	cd build && cp -rf CMakeFiles/ggml.dir/ggml-metal.m.o ../llama.cpp/ggml-metal.o
 
 llama.cpp/k_quants.o: llama.cpp/ggml.o
