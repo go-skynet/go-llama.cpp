@@ -197,7 +197,7 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
         session_tokens.resize(embd_inp.size() - 1);
     }
     // number of tokens to keep when resetting context
-    if (params.n_keep < 0 || params.n_keep > (int)embd_inp.size() || params.instruct) {
+    if (params.n_keep < 0 || params.n_keep > (int) embd_inp.size()) {
         params.n_keep = (int)embd_inp.size();
     }
 
@@ -423,7 +423,7 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
         }
       
         // end of text token
-        if (embd.back() == llama_token_eos()) {
+        if (!embd.empty() && embd.back() == llama_token_eos()) {
                 break;
         }
     }
