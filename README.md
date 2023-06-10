@@ -73,7 +73,9 @@ ggml_opencl: device FP16 support: true
 
 ```
 BUILD_TYPE=metal make libbinding.a
-CGO_LDFLAGS="-framework Foundation -framework Metal -framework MetalKit -framework MetalPerformanceShaders" LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run ./examples -m "/model/path/here" -t 14
+CGO_LDFLAGS="-framework Foundation -framework Metal -framework MetalKit -framework MetalPerformanceShaders" LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go build ./examples/main.go
+cp build/bin/ggml-metal.metal .
+./main -m "/model/path/here" -t 1 -ngl 1
 ```
 
 Enjoy!
