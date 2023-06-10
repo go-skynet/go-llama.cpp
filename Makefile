@@ -145,6 +145,7 @@ endif
 
 ifeq ($(BUILD_TYPE),metal)
 	EXTRA_LIBS=
+	CGO_LDFLAGS+="-framework Accelerate -framework Foundation -framework Metal -framework MetalKit -framework MetalPerformanceShaders"
 	CMAKE_ARGS+=-DLLAMA_METAL=ON
 	EXTRA_TARGETS+=llama.cpp/ggml-metal.o
 endif
@@ -163,6 +164,7 @@ $(info I UNAME_P:  $(UNAME_P))
 $(info I UNAME_M:  $(UNAME_M))
 $(info I CFLAGS:   $(CFLAGS))
 $(info I CXXFLAGS: $(CXXFLAGS))
+$(info I CGO_LDFLAGS:  $(CGO_LDFLAGS))
 $(info I LDFLAGS:  $(LDFLAGS))
 $(info I BUILD_TYPE:  $(BUILD_TYPE))
 $(info I CMAKE_ARGS:  $(CMAKE_ARGS))
@@ -191,10 +193,10 @@ llama.cpp/k_quants.o: llama.cpp/ggml.o
 	cd build && cp -rf CMakeFiles/ggml.dir/k_quants.c.o ../llama.cpp/k_quants.o
 
 llama.cpp/llama.o:
-	$(MAKE) -C llama.cpp llama.o
+	cd build && make llama.o && cp -rf CMakeFiles/llama.dir/llama.cpp.o ../llama.cpp/llama.o
 
 llama.cpp/common.o:
-	$(MAKE) -C llama.cpp common.o
+	cd build && make common && cp -rf examples/CMakeFiles/common.dir/common.cpp.o ../llama.cpp/common.o
 
 binding.o: llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o
 	$(CXX) $(CXXFLAGS) -I./llama.cpp -I./llama.cpp/examples binding.cpp -o binding.o -c $(LDFLAGS)
@@ -208,4 +210,4 @@ clean:
 	rm -rf build
 
 test: libbinding.a
-	@C_INCLUDE_PATH=${INCLUDE_PATH} LIBRARY_PATH=${LIBRARY_PATH} go test -v ./...
+	@C_INCLUDE_PATH=${INCLUDE_PATH} CGO_LDFLAGS=${CGO_LDFLAGS} LIBRARY_PATH=${LIBRARY_PATH} go test -v ./...

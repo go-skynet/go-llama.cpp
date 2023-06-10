@@ -13,8 +13,9 @@ import (
 )
 
 var (
-	threads = 4
-	tokens  = 128
+	threads   = 4
+	tokens    = 128
+	gpulayers = 0
 )
 
 func main() {
@@ -22,6 +23,7 @@ func main() {
 
 	flags := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	flags.StringVar(&model, "m", "./models/7B/ggml-model-q4_0.bin", "path to q4_0.bin model file to load")
+	flags.IntVar(&gpulayers, "ngl", 0, "Number of GPU layers to use")
 	flags.IntVar(&threads, "t", runtime.NumCPU(), "number of threads to use during computation")
 	flags.IntVar(&tokens, "n", 512, "number of tokens to predict")
 
@@ -30,7 +32,7 @@ func main() {
 		fmt.Printf("Parsing program arguments failed: %s", err)
 		os.Exit(1)
 	}
-	l, err := llama.New(model, llama.EnableF16Memory, llama.SetContext(128), llama.EnableEmbeddings)
+	l, err := llama.New(model, llama.EnableF16Memory, llama.SetContext(128), llama.EnableEmbeddings, llama.SetGPULayers(gpulayers))
 	if err != nil {
 		fmt.Println("Loading the model failed:", err.Error())
 		os.Exit(1)
