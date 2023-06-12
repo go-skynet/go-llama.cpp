@@ -1,0 +1,11 @@
+# build files
+/binding.o
+/build
+/ggml-metal.metal
+/libbinding.a
+
+# just in case
+.DS_Store
+.idea
+.vscode
+Thumbs.db
