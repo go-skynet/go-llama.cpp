@@ -178,7 +178,7 @@ $(info )
 
 llama.cpp/ggml.o:
 	mkdir -p build
-	cd build && cmake ../llama.cpp $(CMAKE_ARGS) && make VERBOSE=1 ggml && cp -rf CMakeFiles/ggml.dir/ggml.c.o ../llama.cpp/ggml.o
+	cd build && cmake ../llama.cpp $(CMAKE_ARGS) && VERBOSE=1 cmake --build . --config Release && cp -rf CMakeFiles/ggml.dir/ggml.c.o ../llama.cpp/ggml.o
 
 llama.cpp/ggml-cuda.o: llama.cpp/ggml.o
 	cd build && cp -rf CMakeFiles/ggml.dir/ggml-cuda.cu.o ../llama.cpp/ggml-cuda.o
