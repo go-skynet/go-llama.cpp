@@ -217,6 +217,13 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
     std::vector<llama_token> embd;
     std::string res = "";
 
+    // do one empty run to warm up the model
+    {
+        const std::vector<llama_token> tmp = { llama_token_bos(), };
+        llama_eval(ctx, tmp.data(), tmp.size(), 0, params.n_threads);
+        llama_reset_timings(ctx);
+    }
+    
     while (n_remain != 0) {
                // predict
         if (embd.size() > 0) {
