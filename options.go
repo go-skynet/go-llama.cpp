@@ -7,6 +7,7 @@ type ModelOptions struct {
 	F16Memory   bool
 	MLock       bool
 	MMap        bool
+	VocabOnly   bool
 	LowVRAM     bool
 	Embeddings  bool
 	NGPULayers  int
@@ -128,6 +129,10 @@ func SetPredictionMainGPU(maingpu string) PredictOption {
 	return func(p *PredictOptions) {
 		p.MainGPU = maingpu
 	}
+}
+
+var VocabOnly ModelOption = func(p *ModelOptions) {
+	p.VocabOnly = true
 }
 
 var EnabelLowVRAM ModelOption = func(p *ModelOptions) {
