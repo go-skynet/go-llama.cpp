@@ -14,7 +14,7 @@ int eval(void* params_ptr, void *ctx, char*text);
 
 void save_state(void *ctx, char *dst, char*modes);
 
-void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, int n_gpu, int n_batch, const char *maingpu, const char *tensorsplit);
+void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu, int n_batch, const char *maingpu, const char *tensorsplit);
 
 int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings);
 

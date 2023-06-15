@@ -7,6 +7,7 @@ type ModelOptions struct {
 	F16Memory   bool
 	MLock       bool
 	MMap        bool
+	LowVRAM     bool
 	Embeddings  bool
 	NGPULayers  int
 	MainGPU     string
@@ -50,6 +51,7 @@ var DefaultModelOptions ModelOptions = ModelOptions{
 	MLock:       false,
 	Embeddings:  false,
 	MMap:        true,
+	LowVRAM:     false,
 }
 
 var DefaultOptions PredictOptions = PredictOptions{
@@ -58,7 +60,7 @@ var DefaultOptions PredictOptions = PredictOptions{
 	Tokens:            128,
 	Penalty:           1.1,
 	Repeat:            64,
-	Batch:             8,
+	Batch:             512,
 	NKeep:             64,
 	TopK:              40,
 	TopP:              0.95,
@@ -126,6 +128,10 @@ func SetPredictionMainGPU(maingpu string) PredictOption {
 	return func(p *PredictOptions) {
 		p.MainGPU = maingpu
 	}
+}
+
+var EnabelLowVRAM ModelOption = func(p *ModelOptions) {
+	p.LowVRAM = true
 }
 
 var EnableEmbeddings ModelOption = func(p *ModelOptions) {

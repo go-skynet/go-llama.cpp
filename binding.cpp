@@ -590,7 +590,7 @@ void* llama_allocate_params(const char *prompt, int seed, int threads, int token
 }
 
 
-void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit) {
+void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit) {
     // load the model
     auto lparams = llama_context_default_params();
 
@@ -601,6 +601,8 @@ void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool
     lparams.use_mlock  = mlock;
     lparams.n_gpu_layers = n_gpu_layers;
     lparams.use_mmap = mmap;
+
+    lparams.low_vram = low_vram;
 
     if (maingpu[0] != '\0') { 
         lparams.main_gpu = std::stoi(maingpu);
