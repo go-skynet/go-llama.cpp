@@ -125,7 +125,7 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
 
     std::mt19937 rng(params.seed);
 
-    llama_init_backend();
+
 
     std::string path_session = params.path_prompt_cache;
     std::vector<llama_token> session_tokens;
@@ -625,6 +625,7 @@ void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool
 
     lparams.n_batch      = n_batch;
 
+    llama_init_backend();
     void* res = nullptr;
     try {
         res = llama_init_from_file(fname, lparams);
