@@ -630,7 +630,18 @@ void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool
     llama_init_backend();
     void* res = nullptr;
     try {
-        res = llama_init_from_file(fname, lparams);
+        fprintf(stderr, "%s: seed %d\n", __func__, lparams.seed );
+        fprintf(stderr, "%s: f16 %s\n", __func__, memory_f16 ? "true":"false");
+        fprintf(stderr, "%s: lparams.f16 %s\n", __func__, lparams.f16_kv?"true":"false");
+        fprintf(stderr, "%s: lparams.low_vram %s\n", __func__, lparams.low_vram?"true":"false");
+        fprintf(stderr, "%s: lparams.mlock %s\n", __func__, lparams.use_mlock?"true":"false");
+        fprintf(stderr, "%s: lparams.use_mmap %s\n", __func__, lparams.use_mmap?"true":"false");
+        res = llama_init_from_file(fname, lparams, lparams.low_vram);
+        fprintf(stderr, "%s: f16 %s\n", __func__, memory_f16 ? "true":"false");
+        fprintf(stderr, "%s: lparams.f16 %s\n", __func__, lparams.f16_kv?"true":"false");
+        fprintf(stderr, "%s: lparams.low_vram %s\n", __func__, lparams.low_vram?"true":"false");
+        fprintf(stderr, "%s: lparams.mlock %s\n", __func__, lparams.use_mlock?"true":"false");
+        fprintf(stderr, "%s: lparams.use_mmap %s\n", __func__, lparams.use_mmap?"true":"false");
     } catch(std::runtime_error& e) {   
         fprintf(stderr, "failed %s",e.what());
         return res;
