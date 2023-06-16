@@ -176,7 +176,7 @@ $(info )
 # Use this if you want to set the default behavior
 
 
-llama.cpp/ggml.o:
+llama.cpp/ggml.o: prepare
 	mkdir -p build
 	cd build && cmake ../llama.cpp $(CMAKE_ARGS) && VERBOSE=1 cmake --build . --config Release && cp -rf CMakeFiles/ggml.dir/ggml.c.o ../llama.cpp/ggml.o
 
@@ -193,16 +193,22 @@ llama.cpp/k_quants.o: llama.cpp/ggml.o
 	cd build && cp -rf CMakeFiles/ggml.dir/k_quants.c.o ../llama.cpp/k_quants.o
 
 llama.cpp/llama.o:
-	cd build && make llama.o && cp -rf CMakeFiles/llama.dir/llama.cpp.o ../llama.cpp/llama.o
+	cd build && cp -rf CMakeFiles/llama.dir/llama.cpp.o ../llama.cpp/llama.o
 
 llama.cpp/common.o:
-	cd build && make common && cp -rf examples/CMakeFiles/common.dir/common.cpp.o ../llama.cpp/common.o
+	cd build && cp -rf examples/CMakeFiles/common.dir/common.cpp.o ../llama.cpp/common.o
 
-binding.o: llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o
+binding.o: prepare llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o
 	$(CXX) $(CXXFLAGS) -I./llama.cpp -I./llama.cpp/examples binding.cpp -o binding.o -c $(LDFLAGS)
+
+## https://github.com/ggerganov/llama.cpp/pull/1902
+prepare:
+	cd llama.cpp && patch -p1 < ../1902.patch
+	touch $@
 
 libbinding.a: binding.o llama.cpp/k_quants.o $(EXTRA_TARGETS)
 	ar src libbinding.a llama.cpp/ggml.o llama.cpp/k_quants.o $(EXTRA_TARGETS) llama.cpp/common.o llama.cpp/llama.o binding.o
+
 clean:
 	rm -rf *.o
 	rm -rf *.a
