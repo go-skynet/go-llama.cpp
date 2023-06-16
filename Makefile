@@ -193,10 +193,10 @@ llama.cpp/k_quants.o: llama.cpp/ggml.o
 	cd build && cp -rf CMakeFiles/ggml.dir/k_quants.c.o ../llama.cpp/k_quants.o
 
 llama.cpp/llama.o:
-	cd build && make llama.o && cp -rf CMakeFiles/llama.dir/llama.cpp.o ../llama.cpp/llama.o
+	cd build && cp -rf CMakeFiles/llama.dir/llama.cpp.o ../llama.cpp/llama.o
 
 llama.cpp/common.o:
-	cd build && make common && cp -rf examples/CMakeFiles/common.dir/common.cpp.o ../llama.cpp/common.o
+	cd build && cp -rf examples/CMakeFiles/common.dir/common.cpp.o ../llama.cpp/common.o
 
 binding.o: llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o
 	$(CXX) $(CXXFLAGS) -I./llama.cpp -I./llama.cpp/examples binding.cpp -o binding.o -c $(LDFLAGS)
