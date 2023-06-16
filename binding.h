@@ -14,13 +14,13 @@ int eval(void* params_ptr, void *ctx, char*text);
 
 void save_state(void *ctx, char *dst, char*modes);
 
-void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, bool vocab_only, int n_gpu, int n_batch, const char *maingpu, const char *tensorsplit);
+void* load_model(void *gpt_params);
 
 int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings);
 
 int get_token_embeddings(void* params_ptr, void* state_pr,  int *tokens, int tokenSize, float * res_embeddings);
 
-void* llama_allocate_params(const char *prompt, int seed, int threads, int tokens,
+void* llama_allocate_params(const char *model, const char *prompt, int seed, int threads, int tokens,
                             int top_k, float top_p, float temp, float repeat_penalty, 
                             int repeat_last_n, bool ignore_eos, bool memory_f16, 
                             int n_batch, int n_keep, const char** antiprompt, int antiprompt_count,

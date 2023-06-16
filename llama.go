@@ -20,15 +20,26 @@ type LLama struct {
 	contextSize int
 }
 
-func New(model string, opts ...ModelOption) (*LLama, error) {
-	mo := NewModelOptions(opts...)
-	modelPath := C.CString(model)
-	result := C.load_model(modelPath, C.int(mo.ContextSize), C.int(mo.Seed), C.bool(mo.F16Memory), C.bool(mo.MLock), C.bool(mo.Embeddings), C.bool(mo.MMap), C.bool(mo.LowVRAM), C.bool(mo.VocabOnly), C.int(mo.NGPULayers), C.int(mo.NBatch), C.CString(mo.MainGPU), C.CString(mo.TensorSplit))
+func New(model string, opts ...Option) (*LLama, error) {
+	po := NewOptions(opts...)
+
+	params := C.llama_allocate_params(C.CString(model), C.CString(""), C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
+		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
+		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
+		C.int(po.Batch), C.int(po.NKeep), nil, C.int(0),
+		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
+		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
+		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
+		C.CString(po.MainGPU), C.CString(po.TensorSplit),
+		C.bool(po.PromptCacheRO),
+	)
+
+	result := C.load_model(params)
 	if result == nil {
 		return nil, fmt.Errorf("failed loading model")
 	}
 
-	ll := &LLama{state: result, contextSize: mo.ContextSize, embeddings: mo.Embeddings}
+	ll := &LLama{state: result, contextSize: po.ContextSize, embeddings: po.Embeddings}
 
 	return ll, nil
 }
@@ -60,12 +71,12 @@ func (l *LLama) SaveState(dst string) error {
 }
 
 // Token Embeddings
-func (l *LLama) TokenEmbeddings(tokens []int, opts ...PredictOption) ([]float32, error) {
+func (l *LLama) TokenEmbeddings(tokens []int, opts ...Option) ([]float32, error) {
 	if !l.embeddings {
 		return []float32{}, fmt.Errorf("model loaded without embeddings")
 	}
 
-	po := NewPredictOptions(opts...)
+	po := NewOptions(opts...)
 
 	outSize := po.Tokens
 	if po.Tokens == 0 {
@@ -81,7 +92,7 @@ func (l *LLama) TokenEmbeddings(tokens []int, opts ...PredictOption) ([]float32,
 		(*[1<<31 - 1]int32)(unsafe.Pointer(myArray))[i] = int32(v)
 	}
 
-	params := C.llama_allocate_params(C.CString(""), C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
+	params := C.llama_allocate_params(C.CString(""), C.CString(""), C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
 		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), nil, C.int(0),
@@ -99,12 +110,12 @@ func (l *LLama) TokenEmbeddings(tokens []int, opts ...PredictOption) ([]float32,
 }
 
 // Embeddings
-func (l *LLama) Embeddings(text string, opts ...PredictOption) ([]float32, error) {
+func (l *LLama) Embeddings(text string, opts ...Option) ([]float32, error) {
 	if !l.embeddings {
 		return []float32{}, fmt.Errorf("model loaded without embeddings")
 	}
 
-	po := NewPredictOptions(opts...)
+	po := NewOptions(opts...)
 
 	input := C.CString(text)
 	if po.Tokens == 0 {
@@ -120,7 +131,7 @@ func (l *LLama) Embeddings(text string, opts ...PredictOption) ([]float32, error
 		pass = &reversePrompt[0]
 	}
 
-	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
+	params := C.llama_allocate_params(C.CString(""), input, C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
 		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
@@ -139,8 +150,8 @@ func (l *LLama) Embeddings(text string, opts ...PredictOption) ([]float32, error
 	return floats, nil
 }
 
-func (l *LLama) Eval(text string, opts ...PredictOption) error {
-	po := NewPredictOptions(opts...)
+func (l *LLama) Eval(text string, opts ...Option) error {
+	po := NewOptions(opts...)
 
 	input := C.CString(text)
 	if po.Tokens == 0 {
@@ -156,7 +167,7 @@ func (l *LLama) Eval(text string, opts ...PredictOption) error {
 		pass = &reversePrompt[0]
 	}
 
-	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
+	params := C.llama_allocate_params(C.CString(""), input, C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
 		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
@@ -176,8 +187,8 @@ func (l *LLama) Eval(text string, opts ...PredictOption) error {
 	return nil
 }
 
-func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
-	po := NewPredictOptions(opts...)
+func (l *LLama) Predict(text string, opts ...Option) (string, error) {
+	po := NewOptions(opts...)
 
 	if po.TokenCallback != nil {
 		setCallback(l.state, po.TokenCallback)
@@ -198,7 +209,7 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 		pass = &reversePrompt[0]
 	}
 
-	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
+	params := C.llama_allocate_params(C.CString(""), input, C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
 		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
