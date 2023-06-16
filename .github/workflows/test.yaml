@@ -27,14 +27,9 @@ jobs:
         with: 
           submodules: true
 
-      - name: Dependencies
-        run: |
-          brew update
-          brew install sdl2
-
       - name: Test
         run: |
-          make test
+          CMAKE_ARGS="-DLLAMA_F16C=OFF -DLLAMA_AVX512=OFF -DLLAMA_AVX2=OFF -DLLAMA_FMA=OFF" make test
 
   macOS-metal-latest:
     runs-on: macOS-latest
@@ -45,12 +40,7 @@ jobs:
         with: 
           submodules: true
 
-      - name: Dependencies
-        run: |
-          brew update
-          brew install sdl2
-
       - name: Test
         run: |
-          make BUILD_TYPE=metal test
+          CMAKE_ARGS="-DLLAMA_F16C=OFF -DLLAMA_AVX512=OFF -DLLAMA_AVX2=OFF -DLLAMA_FMA=OFF" make BUILD_TYPE=metal test
           CGO_LDFLAGS="-framework Foundation -framework Metal -framework MetalKit -framework MetalPerformanceShaders" LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go build -o testbuild ./examples
