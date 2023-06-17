@@ -3,6 +3,7 @@ module github.com/go-skynet/go-llama.cpp
 go 1.19
 
 require (
+	github.com/dave-gray101/go-skynet-interfaces v0.0.0-20230617144530-12c5eff9390e
 	github.com/onsi/ginkgo/v2 v2.10.0
 	github.com/onsi/gomega v1.27.8
 )
