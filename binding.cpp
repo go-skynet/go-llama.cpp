@@ -43,7 +43,7 @@ int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings) {
     
     std::mt19937 rng(params.seed);
 
-    llama_init_backend();
+    llama_init_backend(params.numa);
   
     int n_past = 0;
 
@@ -457,7 +457,7 @@ end:
     return 0;
 }
 
-void llama_free_model(void *state_ptr) {
+void llama_binding_free_model(void *state_ptr) {
     llama_context* ctx = (llama_context*) state_ptr;
     llama_free(ctx);
 }
@@ -591,7 +591,7 @@ void* llama_allocate_params(const char *prompt, int seed, int threads, int token
 }
 
 
-void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, bool vocab_only, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit) {
+void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, bool vocab_only, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa) {
     // load the model
     auto lparams = llama_context_default_params();
 
@@ -628,10 +628,10 @@ void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool
 
     lparams.n_batch      = n_batch;
 
-    llama_init_backend();
+    llama_init_backend(numa);
     void* res = nullptr;
     try {
-        res = llama_init_from_file(fname, &lparams);
+        res = llama_init_from_file(fname, lparams);
     } catch(std::runtime_error& e) {   
         fprintf(stderr, "failed %s",e.what());
         return res;
