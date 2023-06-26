@@ -203,10 +203,10 @@ binding.o: prepare llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o
 
 ## https://github.com/ggerganov/llama.cpp/pull/1902
 prepare:
-	cd llama.cpp && patch -p1 < ../1902.patch
+	cd llama.cpp && patch -p1 < ../patches/1902-cuda.patch
 	touch $@
 
-libbinding.a: binding.o llama.cpp/k_quants.o $(EXTRA_TARGETS)
+libbinding.a: prepare binding.o llama.cpp/k_quants.o $(EXTRA_TARGETS)
 	ar src libbinding.a llama.cpp/ggml.o llama.cpp/k_quants.o $(EXTRA_TARGETS) llama.cpp/common.o llama.cpp/llama.o binding.o
 
 clean:

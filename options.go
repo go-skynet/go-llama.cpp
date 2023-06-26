@@ -10,6 +10,7 @@ type ModelOptions struct {
 	VocabOnly   bool
 	LowVRAM     bool
 	Embeddings  bool
+	NUMA        bool
 	NGPULayers  int
 	MainGPU     string
 	TensorSplit string
@@ -137,6 +138,10 @@ var VocabOnly ModelOption = func(p *ModelOptions) {
 
 var EnabelLowVRAM ModelOption = func(p *ModelOptions) {
 	p.LowVRAM = true
+}
+
+var EnableNUMA ModelOption = func(p *ModelOptions) {
+	p.NUMA = true
 }
 
 var EnableEmbeddings ModelOption = func(p *ModelOptions) {
