@@ -1,0 +1,52 @@
+diff --git a/llama.cpp b/llama.cpp
+index 1a15844..82d45f3 100644
+--- a/llama.cpp
++++ b/llama.cpp
+@@ -2660,7 +2660,7 @@ static void llama_model_quantize_internal(const std::string & fname_inp, const s
+ 
+ struct llama_model * llama_load_model_from_file(
+                              const char * path_model,
+-            struct llama_context_params   params) {
++                struct llama_context_params params) {
+     ggml_time_init();
+ 
+     llama_model * model = new llama_model;
+@@ -2793,13 +2793,13 @@ struct llama_context * llama_new_context_with_model(
+ 
+ struct llama_context * llama_init_from_file(
+                              const char * path_model,
+-            struct llama_context_params   params) {
++            struct llama_context_params  * params) {
+ 
+-    struct llama_model * model = llama_load_model_from_file(path_model, params);
++    struct llama_model * model = llama_load_model_from_file(path_model, *params);
+     if (!model) {
+         return nullptr;
+     }
+-    struct llama_context * ctx = llama_new_context_with_model(model, params);
++    struct llama_context * ctx = llama_new_context_with_model(model, *params);
+     ctx->model_owner = true;
+     return ctx;
+ }
+diff --git a/llama.h b/llama.h
+index 76239be..c7aa1fe 100644
+--- a/llama.h
++++ b/llama.h
+@@ -148,7 +148,7 @@ extern "C" {
+ 
+     LLAMA_API struct llama_model * llama_load_model_from_file(
+                              const char * path_model,
+-            struct llama_context_params   params);
++            const struct llama_context_params params);
+ 
+     LLAMA_API void llama_free_model(struct llama_model * model);
+ 
+@@ -161,7 +161,7 @@ extern "C" {
+     // Return NULL on failure
+     LLAMA_API DEPRECATED(struct llama_context * llama_init_from_file(
+                              const char * path_model,
+-            struct llama_context_params   params),
++            struct llama_context_params  * params),
+             "please use llama_load_model_from_file combined with llama_new_context_with_model instead");
+ 
+     // Frees all allocated memory

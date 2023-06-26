@@ -631,7 +631,7 @@ void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool
     llama_init_backend(numa);
     void* res = nullptr;
     try {
-        res = llama_init_from_file(fname, lparams);
+        res = llama_init_from_file(fname, &lparams);
     } catch(std::runtime_error& e) {   
         fprintf(stderr, "failed %s",e.what());
         return res;

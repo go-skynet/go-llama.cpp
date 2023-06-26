@@ -198,10 +198,15 @@ llama.cpp/llama.o:
 llama.cpp/common.o:
 	cd build && cp -rf examples/CMakeFiles/common.dir/common.cpp.o ../llama.cpp/common.o
 
-binding.o: llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o
+binding.o: prepare llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o
 	$(CXX) $(CXXFLAGS) -I./llama.cpp -I./llama.cpp/examples binding.cpp -o binding.o -c $(LDFLAGS)
 
-libbinding.a: binding.o llama.cpp/k_quants.o $(EXTRA_TARGETS)
+## https://github.com/ggerganov/llama.cpp/pull/1902
+prepare:
+	cd llama.cpp && patch -p1 < ../patches/1902-cuda.patch
+	touch $@
+
+libbinding.a: prepare binding.o llama.cpp/k_quants.o $(EXTRA_TARGETS)
 	ar src libbinding.a llama.cpp/ggml.o llama.cpp/k_quants.o $(EXTRA_TARGETS) llama.cpp/common.o llama.cpp/llama.o binding.o
 
 clean:
