@@ -631,7 +631,19 @@ void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool
     llama_init_backend(numa);
     void* res = nullptr;
     try {
-        res = llama_init_from_file(fname, &lparams);
+        auto model  = llama_load_model_from_file(fname, lparams);
+        if (model == NULL) {
+            fprintf(stderr, "%s: error: failed to load model '%s'\n", __func__, fname);
+            return NULL;
+        }
+
+        llama_context * lctx = llama_new_context_with_model(model, lparams);
+        if (lctx == NULL) {
+            fprintf(stderr, "%s: error: failed to create context with model '%s'\n", __func__, fname);
+            llama_free_model(model);
+            return NULL;
+        }
+        res = lctx;
     } catch(std::runtime_error& e) {   
         fprintf(stderr, "failed %s",e.what());
         return res;
