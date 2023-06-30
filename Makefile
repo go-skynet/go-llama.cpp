@@ -198,7 +198,10 @@ llama.cpp/llama.o:
 llama.cpp/common.o:
 	cd build && cp -rf examples/CMakeFiles/common.dir/common.cpp.o ../llama.cpp/common.o
 
-binding.o: prepare llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o
+llama.cpp/grammar-parser.o:
+	cd build && cp -rf examples/CMakeFiles/common.dir/grammar-parser.cpp.o ../llama.cpp/grammar-parser.o
+
+binding.o: prepare llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o llama.cpp/grammar-parser.o
 	$(CXX) $(CXXFLAGS) -I./llama.cpp -I./llama.cpp/examples binding.cpp -o binding.o -c $(LDFLAGS)
 
 ## https://github.com/ggerganov/llama.cpp/pull/1902
@@ -207,7 +210,7 @@ prepare:
 	touch $@
 
 libbinding.a: prepare binding.o llama.cpp/k_quants.o $(EXTRA_TARGETS)
-	ar src libbinding.a llama.cpp/ggml.o llama.cpp/k_quants.o $(EXTRA_TARGETS) llama.cpp/common.o llama.cpp/llama.o binding.o
+	ar src libbinding.a llama.cpp/ggml.o llama.cpp/k_quants.o $(EXTRA_TARGETS) llama.cpp/common.o llama.cpp/grammar-parser.o llama.cpp/llama.o binding.o
 
 clean:
 	rm -rf *.o

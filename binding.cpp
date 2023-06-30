@@ -1,6 +1,6 @@
 #include "common.h"
 #include "llama.h"
-
+#include "grammar-parser.h"
 #include "binding.h"
 
 #include <cassert>
@@ -205,6 +205,24 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
     // determine newline token
     auto llama_token_newline = ::llama_tokenize(ctx, "\n", false);
 
+    grammar_parser::parse_state parsed_grammar;
+    llama_grammar *             grammar = NULL;
+    if (!params.grammar.empty()) {
+        parsed_grammar = grammar_parser::parse(params.grammar.c_str());
+        // will be empty (default) if there are parse errors
+        if (parsed_grammar.rules.empty()) {
+            return 1;
+        }
+        fprintf(stderr, "%s: grammar:\n", __func__);
+        grammar_parser::print_grammar(stderr, parsed_grammar);
+        fprintf(stderr, "\n");
+
+        std::vector<const llama_grammar_element *> grammar_rules(parsed_grammar.c_rules());
+        grammar = llama_grammar_init(
+            grammar_rules.data(), grammar_rules.size(), parsed_grammar.symbol_ids.at("root"));
+    }
+
+
     // TODO: replace with ring-buffer
     std::vector<llama_token> last_n_tokens(n_ctx);
     std::fill(last_n_tokens.begin(), last_n_tokens.end(), 0);
@@ -351,6 +369,10 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
                     logits[llama_token_nl()] = nl_logit;
                 }
 
+                if (grammar != NULL) {
+                    llama_sample_grammar(ctx, &candidates_p, grammar);
+                }
+
                 if (temp <= 0) {
                     // Greedy sampling
                     id = llama_sample_token_greedy(ctx, &candidates_p);
@@ -375,6 +397,9 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
                     }
                 }
                 // printf("`%d`", candidates_p.size);
+                if (grammar != NULL) {
+                    id = llama_grammar_accept_token(ctx, grammar, id);
+                }
 
                 last_n_tokens.erase(last_n_tokens.begin());
                 last_n_tokens.push_back(id);
@@ -453,6 +478,10 @@ end:
         llama_reset_timings(ctx);
     }
 
+    if (grammar != NULL) {
+        llama_grammar_free(grammar);
+    }
+
     strcpy(result, res.c_str()); 
     return 0;
 }
@@ -524,7 +553,7 @@ void save_state(void *ctx, char *dst, char*modes) {
 void* llama_allocate_params(const char *prompt, int seed, int threads, int tokens, int top_k,
                             float top_p, float temp, float repeat_penalty, int repeat_last_n, bool ignore_eos, bool memory_f16, int n_batch, int n_keep, const char** antiprompt, int antiprompt_count,
                              float tfs_z, float typical_p, float frequency_penalty, float presence_penalty, int mirostat, float mirostat_eta, float mirostat_tau, bool penalize_nl, const char *logit_bias, const char *session_file, bool prompt_cache_all, bool mlock, bool mmap,
-                             const char *maingpu,const char *tensorsplit , bool prompt_cache_ro) {
+                             const char *maingpu,const char *tensorsplit , bool prompt_cache_ro, const char *grammar) {
     gpt_params* params = new gpt_params;
     params->seed = seed;
     params->n_threads = threads;
@@ -533,6 +562,7 @@ void* llama_allocate_params(const char *prompt, int seed, int threads, int token
     params->prompt_cache_ro = prompt_cache_ro;
     params->top_k = top_k;
     params->top_p = top_p;
+    params->grammar = std::string(grammar);
     params->memory_f16 = memory_f16;
     params->temp = temp;
     params->use_mmap = mmap;
