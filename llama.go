@@ -8,6 +8,7 @@ package llama
 import "C"
 import (
 	"fmt"
+	common "github.com/go-skynet/go-common"
 	"os"
 	"strings"
 	"sync"
@@ -20,21 +21,36 @@ type LLama struct {
 	contextSize int
 }
 
-func New(model string, opts ...ModelOption) (*LLama, error) {
-	mo := NewModelOptions(opts...)
-	modelPath := C.CString(model)
-	result := C.load_model(modelPath, C.int(mo.ContextSize), C.int(mo.Seed), C.bool(mo.F16Memory), C.bool(mo.MLock), C.bool(mo.Embeddings), C.bool(mo.MMap), C.bool(mo.LowVRAM), C.bool(mo.VocabOnly), C.int(mo.NGPULayers), C.int(mo.NBatch), C.CString(mo.MainGPU), C.CString(mo.TensorSplit), C.bool(mo.NUMA))
-	if result == nil {
-		return nil, fmt.Errorf("failed loading model")
-	}
-
-	ll := &LLama{state: result, contextSize: mo.ContextSize, embeddings: mo.Embeddings}
-
-	return ll, nil
+func (l LLama) Name() string {
+	return "llama"
 }
 
-func (l *LLama) Free() {
+func (l LLama) Close() error {
 	C.llama_binding_free_model(l.state)
+	return nil
+}
+
+var LLamaBackendInitializer common.BackendInitializer[LLama] = common.BackendInitializer[LLama]{
+	DefaultInitializationOptions: common.InitializationOptions{
+		ContextSize: 512,
+		Seed:        0,
+		F16Memory:   false,
+		MLock:       false,
+		Embeddings:  false,
+		MMap:        true,
+		LowVRAM:     false,
+	},
+	Constructor: func(modelPath string, initializationOptions common.InitializationOptions) (*LLama, error) {
+		cModelPath := C.CString(modelPath)
+		result := C.load_model(cModelPath, C.int(initializationOptions.ContextSize), C.int(initializationOptions.Seed), C.bool(initializationOptions.F16Memory), C.bool(initializationOptions.MLock), C.bool(initializationOptions.Embeddings), C.bool(initializationOptions.MMap), C.bool(initializationOptions.LowVRAM), C.bool(initializationOptions.VocabOnly), C.int(initializationOptions.NGPULayers), C.int(initializationOptions.NBatch), C.CString(initializationOptions.MainGPU), C.CString(initializationOptions.TensorSplit), C.bool(initializationOptions.NUMA))
+		if result == nil {
+			return nil, fmt.Errorf("failed loading model")
+		}
+
+		ll := &LLama{state: result, contextSize: initializationOptions.ContextSize, embeddings: initializationOptions.Embeddings}
+
+		return ll, nil
+	},
 }
 
 func (l *LLama) LoadState(state string) error {
@@ -60,12 +76,14 @@ func (l *LLama) SaveState(dst string) error {
 }
 
 // Token Embeddings
-func (l *LLama) TokenEmbeddings(tokens []int, opts ...PredictOption) ([]float32, error) {
+func (l *LLama) TokenEmbeddings(tokens []int, opts ...common.PredictTextOptionSetter) ([]float32, error) {
+	return l.TokenEmbeddingsWithOptions(tokens, *MergePredictOptionsWithDefaults(opts...))
+}
+
+func (l *LLama) TokenEmbeddingsWithOptions(tokens []int, po common.PredictTextOptions) ([]float32, error) {
 	if !l.embeddings {
 		return []float32{}, fmt.Errorf("model loaded without embeddings")
 	}
-
-	po := NewPredictOptions(opts...)
 
 	outSize := po.Tokens
 	if po.Tokens == 0 {
@@ -98,13 +116,17 @@ func (l *LLama) TokenEmbeddings(tokens []int, opts ...PredictOption) ([]float32,
 	return floats, nil
 }
 
-// Embeddings
-func (l *LLama) Embeddings(text string, opts ...PredictOption) ([]float32, error) {
+// String Embeddings
+func (l *LLama) StringEmbeddings(text string, opts ...common.PredictTextOptionSetter) ([]float32, error) {
+	return l.StringEmbeddingsWithOptions(text, *MergePredictOptionsWithDefaults(opts...))
+}
+
+// TODO: Rather than a bespoke method here, should we just convert this to tokens and call TokenEmbeddingsWithOptions or the other way around?
+// That will require some reconsideration down in bindings::get_embeddings, so that's deferred for now.
+func (l *LLama) StringEmbeddingsWithOptions(text string, po common.PredictTextOptions) ([]float32, error) {
 	if !l.embeddings {
 		return []float32{}, fmt.Errorf("model loaded without embeddings")
 	}
-
-	po := NewPredictOptions(opts...)
 
 	input := C.CString(text)
 	if po.Tokens == 0 {
@@ -139,9 +161,11 @@ func (l *LLama) Embeddings(text string, opts ...PredictOption) ([]float32, error
 	return floats, nil
 }
 
-func (l *LLama) Eval(text string, opts ...PredictOption) error {
-	po := NewPredictOptions(opts...)
+func (l *LLama) Eval(text string, opts ...common.PredictTextOptionSetter) error {
+	return l.EvalWithOptions(text, *MergePredictOptionsWithDefaults(opts...))
+}
 
+func (l *LLama) EvalWithOptions(text string, po common.PredictTextOptions) error {
 	input := C.CString(text)
 	if po.Tokens == 0 {
 		po.Tokens = 99999999
@@ -176,8 +200,11 @@ func (l *LLama) Eval(text string, opts ...PredictOption) error {
 	return nil
 }
 
-func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
-	po := NewPredictOptions(opts...)
+func (l *LLama) Predict(text string, opts ...common.PredictTextOptionSetter) (string, error) {
+	return l.PredictWithOptions(text, *MergePredictOptionsWithDefaults(opts...))
+}
+
+func (l *LLama) PredictWithOptions(text string, po common.PredictTextOptions) (string, error) {
 
 	if po.TokenCallback != nil {
 		setCallback(l.state, po.TokenCallback)

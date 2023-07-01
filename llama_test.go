@@ -9,7 +9,7 @@ import (
 var _ = Describe("LLama binding", func() {
 	Context("Declaration", func() {
 		It("fails with no model", func() {
-			model, err := New("not-existing")
+			model, err := LLamaBackendInitializer.New("not-existing")
 			Expect(err).To(HaveOccurred())
 			Expect(model).To(BeNil())
 		})

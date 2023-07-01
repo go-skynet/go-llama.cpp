@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 
+	common "github.com/go-skynet/go-common"
 	llama "github.com/go-skynet/go-llama.cpp"
 )
 
@@ -32,7 +33,7 @@ func main() {
 		fmt.Printf("Parsing program arguments failed: %s", err)
 		os.Exit(1)
 	}
-	l, err := llama.New(model, llama.EnableF16Memory, llama.SetContext(128), llama.EnableEmbeddings, llama.SetGPULayers(gpulayers))
+	l, err := llama.LLamaBackendInitializer.New(model, common.EnableF16Memory, common.SetContext(128), common.EnableEmbeddings, common.SetGPULayers(gpulayers))
 	if err != nil {
 		fmt.Println("Loading the model failed:", err.Error())
 		os.Exit(1)
@@ -44,14 +45,14 @@ func main() {
 	for {
 		text := readMultiLineInput(reader)
 
-		_, err := l.Predict(text, llama.Debug, llama.SetTokenCallback(func(token string) bool {
+		_, err := l.Predict(text, common.Debug, common.SetTokenCallback(func(token string) bool {
 			fmt.Print(token)
 			return true
-		}), llama.SetTokens(tokens), llama.SetThreads(threads), llama.SetTopK(90), llama.SetTopP(0.86), llama.SetStopWords("llama"))
+		}), common.SetTokens(tokens), common.SetThreads(threads), common.SetTopK(90), common.SetTopP(0.86), common.SetStopWords("llama"))
 		if err != nil {
 			panic(err)
 		}
-		embeds, err := l.Embeddings(text)
+		embeds, err := l.StringEmbeddings(text)
 		if err != nil {
 			fmt.Printf("Embeddings: error %s \n", err.Error())
 		}

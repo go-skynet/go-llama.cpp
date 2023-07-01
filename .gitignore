@@ -3,6 +3,7 @@
 /build
 /ggml-metal.metal
 /libbinding.a
+prepare
 
 # just in case
 .DS_Store

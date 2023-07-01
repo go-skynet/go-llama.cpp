@@ -217,3 +217,6 @@ clean:
 
 test: libbinding.a
 	@C_INCLUDE_PATH=${INCLUDE_PATH} CGO_LDFLAGS=${CGO_LDFLAGS} LIBRARY_PATH=${LIBRARY_PATH} go test -v ./...
+
+fix-submodule:
+	git submodule update --init --recursive --depth 1
