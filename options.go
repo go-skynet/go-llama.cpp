@@ -38,6 +38,7 @@ type PredictOptions struct {
 	PathPromptCache             string
 	MLock, MMap, PromptCacheAll bool
 	PromptCacheRO               bool
+	Grammar                     string
 	MainGPU                     string
 	TensorSplit                 string
 }
@@ -183,6 +184,13 @@ func NewModelOptions(opts ...ModelOption) ModelOptions {
 
 var IgnoreEOS PredictOption = func(p *PredictOptions) {
 	p.IgnoreEOS = true
+}
+
+// WithGrammar sets the grammar to constrain the output of the LLM response
+func WithGrammar(s string) PredictOption {
+	return func(p *PredictOptions) {
+		p.Grammar = s
+	}
 }
 
 // SetMlock sets the memory lock.

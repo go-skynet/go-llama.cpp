@@ -90,6 +90,7 @@ func (l *LLama) TokenEmbeddings(tokens []int, opts ...PredictOption) ([]float32,
 		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
 		C.CString(po.MainGPU), C.CString(po.TensorSplit),
 		C.bool(po.PromptCacheRO),
+		C.CString(po.Grammar),
 	)
 	ret := C.get_token_embeddings(params, l.state, myArray, C.int(len(tokens)), (*C.float)(&floats[0]))
 	if ret != 0 {
@@ -129,6 +130,7 @@ func (l *LLama) Embeddings(text string, opts ...PredictOption) ([]float32, error
 		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
 		C.CString(po.MainGPU), C.CString(po.TensorSplit),
 		C.bool(po.PromptCacheRO),
+		C.CString(po.Grammar),
 	)
 
 	ret := C.get_embeddings(params, l.state, (*C.float)(&floats[0]))
@@ -165,6 +167,7 @@ func (l *LLama) Eval(text string, opts ...PredictOption) error {
 		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
 		C.CString(po.MainGPU), C.CString(po.TensorSplit),
 		C.bool(po.PromptCacheRO),
+		C.CString(po.Grammar),
 	)
 	ret := C.eval(params, l.state, input)
 	if ret != 0 {
@@ -207,6 +210,7 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
 		C.CString(po.MainGPU), C.CString(po.TensorSplit),
 		C.bool(po.PromptCacheRO),
+		C.CString(po.Grammar),
 	)
 	ret := C.llama_predict(params, l.state, (*C.char)(unsafe.Pointer(&out[0])), C.bool(po.DebugMode))
 	if ret != 0 {
