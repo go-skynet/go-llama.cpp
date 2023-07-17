@@ -1,5 +1,5 @@
 #include "common.h"
-#include "llama.h"
+#include "llama.cpp"
 
 #include "binding.h"
 
@@ -42,8 +42,6 @@ int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings) {
     }
     
     std::mt19937 rng(params.seed);
-
-    llama_init_backend(params.numa);
   
     int n_past = 0;
 
@@ -459,6 +457,7 @@ end:
 
 void llama_binding_free_model(void *state_ptr) {
     llama_context* ctx = (llama_context*) state_ptr;
+    delete &ctx->model;
     llama_free(ctx);
 }
 
@@ -628,10 +627,16 @@ void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool
 
     lparams.n_batch      = n_batch;
 
-    llama_init_backend(numa);
+    llama_backend_init(numa);
     void* res = nullptr;
     try {
-        res = llama_init_from_file(fname, &lparams);
+
+        struct llama_model * model = llama_load_model_from_file(fname, &lparams);
+        if (!model) {
+            return nullptr;
+        }
+        struct llama_context * ctx = llama_new_context_with_model(model, &lparams);
+        res = ctx;
     } catch(std::runtime_error& e) {   
         fprintf(stderr, "failed %s",e.what());
         return res;
