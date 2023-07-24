@@ -7,7 +7,6 @@ type ModelOptions struct {
 	F16Memory   bool
 	MLock       bool
 	MMap        bool
-	VocabOnly   bool
 	LowVRAM     bool
 	Embeddings  bool
 	NUMA        bool
@@ -38,8 +37,17 @@ type PredictOptions struct {
 	PathPromptCache             string
 	MLock, MMap, PromptCacheAll bool
 	PromptCacheRO               bool
+	Grammar                     string
 	MainGPU                     string
 	TensorSplit                 string
+
+	// Rope parameters
+	RopeFreqBase  float64
+	RopeFreqScale float64
+
+	// Negative prompt parameters
+	NegativePromptScale float64
+	NegativePrompt      string
 }
 
 type PredictOption func(p *PredictOptions)
@@ -132,8 +140,29 @@ func SetPredictionMainGPU(maingpu string) PredictOption {
 	}
 }
 
-var VocabOnly ModelOption = func(p *ModelOptions) {
-	p.VocabOnly = true
+// Rope and negative prompt parameters
+func SetRopeFreqBase(rfb float64) PredictOption {
+	return func(p *PredictOptions) {
+		p.RopeFreqBase = rfb
+	}
+}
+
+func SetRopeFreqScale(rfs float64) PredictOption {
+	return func(p *PredictOptions) {
+		p.RopeFreqScale = rfs
+	}
+}
+
+func SetNegativePromptScale(nps float64) PredictOption {
+	return func(p *PredictOptions) {
+		p.NegativePromptScale = nps
+	}
+}
+
+func SetNegativePrompt(np string) PredictOption {
+	return func(p *PredictOptions) {
+		p.NegativePrompt = np
+	}
 }
 
 var EnabelLowVRAM ModelOption = func(p *ModelOptions) {
@@ -183,6 +212,13 @@ func NewModelOptions(opts ...ModelOption) ModelOptions {
 
 var IgnoreEOS PredictOption = func(p *PredictOptions) {
 	p.IgnoreEOS = true
+}
+
+// WithGrammar sets the grammar to constrain the output of the LLM response
+func WithGrammar(s string) PredictOption {
+	return func(p *PredictOptions) {
+		p.Grammar = s
+	}
 }
 
 // SetMlock sets the memory lock.

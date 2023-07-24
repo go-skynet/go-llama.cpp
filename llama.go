@@ -23,7 +23,7 @@ type LLama struct {
 func New(model string, opts ...ModelOption) (*LLama, error) {
 	mo := NewModelOptions(opts...)
 	modelPath := C.CString(model)
-	result := C.load_model(modelPath, C.int(mo.ContextSize), C.int(mo.Seed), C.bool(mo.F16Memory), C.bool(mo.MLock), C.bool(mo.Embeddings), C.bool(mo.MMap), C.bool(mo.LowVRAM), C.bool(mo.VocabOnly), C.int(mo.NGPULayers), C.int(mo.NBatch), C.CString(mo.MainGPU), C.CString(mo.TensorSplit), C.bool(mo.NUMA))
+	result := C.load_model(modelPath, C.int(mo.ContextSize), C.int(mo.Seed), C.bool(mo.F16Memory), C.bool(mo.MLock), C.bool(mo.Embeddings), C.bool(mo.MMap), C.bool(mo.LowVRAM), C.int(mo.NGPULayers), C.int(mo.NBatch), C.CString(mo.MainGPU), C.CString(mo.TensorSplit), C.bool(mo.NUMA))
 	if result == nil {
 		return nil, fmt.Errorf("failed loading model")
 	}
@@ -80,7 +80,13 @@ func (l *LLama) TokenEmbeddings(tokens []int, opts ...PredictOption) ([]float32,
 	for i, v := range tokens {
 		(*[1<<31 - 1]int32)(unsafe.Pointer(myArray))[i] = int32(v)
 	}
-
+	// void* llama_allocate_params(const char *prompt, int seed, int threads, int tokens,
+	// int top_k, float top_p, float temp, float repeat_penalty,
+	// int repeat_last_n, bool ignore_eos, bool memory_f16,
+	// int n_batch, int n_keep, const char** antiprompt, int antiprompt_count,
+	// float tfs_z, float typical_p, float frequency_penalty, float presence_penalty, int mirostat, float mirostat_eta, float mirostat_tau, bool penalize_nl, const char *logit_bias, const char *session_file, bool prompt_cache_all, bool mlock, bool mmap, const char *maingpu, const char *tensorsplit , bool prompt_cache_ro,
+	// float rope_freq_base, float rope_freq_scale, float negative_prompt_scale, const char* negative_prompt
+	// );
 	params := C.llama_allocate_params(C.CString(""), C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
 		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
@@ -90,6 +96,8 @@ func (l *LLama) TokenEmbeddings(tokens []int, opts ...PredictOption) ([]float32,
 		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
 		C.CString(po.MainGPU), C.CString(po.TensorSplit),
 		C.bool(po.PromptCacheRO),
+		C.CString(po.Grammar),
+		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), C.CString(po.NegativePrompt),
 	)
 	ret := C.get_token_embeddings(params, l.state, myArray, C.int(len(tokens)), (*C.float)(&floats[0]))
 	if ret != 0 {
@@ -129,6 +137,8 @@ func (l *LLama) Embeddings(text string, opts ...PredictOption) ([]float32, error
 		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
 		C.CString(po.MainGPU), C.CString(po.TensorSplit),
 		C.bool(po.PromptCacheRO),
+		C.CString(po.Grammar),
+		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), C.CString(po.NegativePrompt),
 	)
 
 	ret := C.get_embeddings(params, l.state, (*C.float)(&floats[0]))
@@ -165,6 +175,8 @@ func (l *LLama) Eval(text string, opts ...PredictOption) error {
 		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
 		C.CString(po.MainGPU), C.CString(po.TensorSplit),
 		C.bool(po.PromptCacheRO),
+		C.CString(po.Grammar),
+		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), C.CString(po.NegativePrompt),
 	)
 	ret := C.eval(params, l.state, input)
 	if ret != 0 {
@@ -207,6 +219,8 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
 		C.CString(po.MainGPU), C.CString(po.TensorSplit),
 		C.bool(po.PromptCacheRO),
+		C.CString(po.Grammar),
+		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), C.CString(po.NegativePrompt),
 	)
 	ret := C.llama_predict(params, l.state, (*C.char)(unsafe.Pointer(&out[0])), C.bool(po.DebugMode))
 	if ret != 0 {
