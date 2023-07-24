@@ -1,5 +1,5 @@
 #include "common.h"
-#include "llama.cpp"
+#include "llama.h"
 
 #include "binding.h"
 #include "grammar-parser.h"
@@ -608,9 +608,9 @@ end:
 }
 
 void llama_binding_free_model(void *state_ptr) {
-    llama_context* ctx = (llama_context*) state_ptr;
-    delete &ctx->model;
-    llama_free(ctx);
+    llama_state* ctx = (llama_state*) state_ptr;
+    llama_free(ctx->ctx);
+    delete ctx->model;
 }
 
 void llama_free_params(void* params_ptr) {
