@@ -2,7 +2,7 @@
 #include "llama.cpp"
 
 #include "binding.h"
-
+#include "grammar-parser.h"
 #include <cassert>
 #include <cinttypes>
 #include <cmath>
@@ -32,9 +32,11 @@ void sigint_handler(int signo) {
 }
 #endif
 
+
 int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings) {
     gpt_params* params_p = (gpt_params*) params_ptr;
-    llama_context* ctx = (llama_context*) state_pr;
+    llama_state* state = (llama_state*) state_pr;
+    llama_context* ctx = state->ctx;
     gpt_params params = *params_p;
 
     if (params.seed <= 0) {
@@ -75,7 +77,8 @@ int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings) {
 
 int get_token_embeddings(void* params_ptr, void* state_pr,  int *tokens, int tokenSize, float * res_embeddings) {
     gpt_params* params_p = (gpt_params*) params_ptr;
-    llama_context* ctx = (llama_context*) state_pr;
+    llama_state* state = (llama_state*) state_pr;
+    llama_context* ctx = state->ctx;
     gpt_params params = *params_p;
  
     for (int i = 0; i < tokenSize; i++) {
@@ -93,7 +96,8 @@ int get_token_embeddings(void* params_ptr, void* state_pr,  int *tokens, int tok
 
 int eval(void* params_ptr,void* state_pr,char *text) {
     gpt_params* params_p = (gpt_params*) params_ptr;
-    llama_context* ctx = (llama_context*) state_pr;
+    llama_state* state = (llama_state*) state_pr;
+    llama_context* ctx = state->ctx;
 
     auto n_past = 0;
     auto last_n_tokens_data = std::vector<llama_token>(params_p->repeat_last_n, 0);
@@ -109,22 +113,45 @@ int eval(void* params_ptr,void* state_pr,char *text) {
     // evaluate prompt
     return llama_eval(ctx, tokens.data(), n_prompt_tokens, n_past, params_p->n_threads);
 }
+static llama_context ** g_ctx;
 
 int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
     gpt_params* params_p = (gpt_params*) params_ptr;
-    llama_context* ctx = (llama_context*) state_pr;
-  
+    llama_state* state = (llama_state*) state_pr;
+    llama_context* ctx = state->ctx;
+
     gpt_params params = *params_p;
 
     const int n_ctx = llama_n_ctx(ctx);
 
-    if (params.seed <= 0) {
+    if (params.seed == LLAMA_DEFAULT_SEED) {
         params.seed = time(NULL);
     }
 
     std::mt19937 rng(params.seed);
 
+    if (params.rope_freq_base != 10000.0) {
+        fprintf(stderr, "%s: warning: changing RoPE frequency base to %g (default 10000.0)\n", __func__, params.rope_freq_base);
+    }
 
+    if (params.rope_freq_scale != 1.0) {
+        fprintf(stderr, "%s: warning: scaling RoPE frequency by %g (default 1.0)\n", __func__, params.rope_freq_scale);
+    }
+
+    if (params.n_ctx > 2048) {
+        // TODO: determine the actual max context of the model (e.g. 4096 for LLaMA v2) and use that instead of 2048
+        fprintf(stderr, "%s: warning: base model only supports context sizes no greater than 2048 tokens (%d specified)\n", __func__, params.n_ctx);
+    } else if (params.n_ctx < 8) {
+        fprintf(stderr, "%s: warning: minimum context size is 8, using minimum size.\n", __func__);
+        params.n_ctx = 8;
+    }
+    llama_context * ctx_guidance = NULL;
+    g_ctx = &ctx;
+    
+    if (params.cfg_scale > 1.f) {
+        struct llama_context_params lparams = llama_context_params_from_gpt_params(params);
+        ctx_guidance = llama_new_context_with_model(state->model, lparams);
+    }
 
     std::string path_session = params.path_prompt_cache;
     std::vector<llama_token> session_tokens;
@@ -166,6 +193,25 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
         embd_inp = session_tokens;
     }
 
+    // Tokenize negative prompt
+    std::vector<llama_token> guidance_inp;
+    int guidance_offset = 0;
+    int original_prompt_len = 0;
+    if (ctx_guidance) {
+        params.cfg_negative_prompt.insert(0, 1, ' ');
+        guidance_inp = ::llama_tokenize(ctx_guidance, params.cfg_negative_prompt, true);
+
+        std::vector<llama_token> original_inp = ::llama_tokenize(ctx, params.prompt, true);
+        original_prompt_len = original_inp.size();
+        guidance_offset = (int)guidance_inp.size() - original_prompt_len;
+    }
+
+
+    if ((int) embd_inp.size() > n_ctx - 4) {
+        fprintf(stderr, "%s: error: prompt is too long (%d tokens, max %d)\n", __func__, (int) embd_inp.size(), n_ctx - 4);
+        return 1;
+    }
+
     // debug message about similarity of saved session, if applicable
     size_t n_matching_session_tokens = 0;
     if (session_tokens.size()) {
@@ -200,8 +246,43 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
         params.n_keep = (int)embd_inp.size();
     }
 
+    if (debug && ctx_guidance) {
+            fprintf(stderr, "\n");
+            fprintf(stderr, "%s: negative prompt: '%s'\n", __func__, params.cfg_negative_prompt.c_str());
+            fprintf(stderr, "%s: number of tokens in negative prompt = %zu\n", __func__, guidance_inp.size());
+            for (int i = 0; i < (int) guidance_inp.size(); i++) {
+                fprintf(stderr, "%6d -> '%s'\n", guidance_inp[i], llama_token_to_str(ctx, guidance_inp[i]));
+            }
+    }
+
     // determine newline token
     auto llama_token_newline = ::llama_tokenize(ctx, "\n", false);
+
+    grammar_parser::parse_state parsed_grammar;
+    llama_grammar *             grammar = NULL;
+    if (!params.grammar.empty()) {
+        parsed_grammar = grammar_parser::parse(params.grammar.c_str());
+        // will be empty (default) if there are parse errors
+        if (parsed_grammar.rules.empty()) {
+            return 1;
+        }
+        fprintf(stderr, "%s: grammar:\n", __func__);
+        grammar_parser::print_grammar(stderr, parsed_grammar);
+        fprintf(stderr, "\n");
+
+        {
+            auto it = params.logit_bias.find(llama_token_eos());
+            if (it != params.logit_bias.end() && it->second == -INFINITY) {
+                fprintf(stderr,
+                    "%s: warning: EOS token is disabled, which will cause most grammars to fail\n", __func__);
+            }
+        }
+
+        std::vector<const llama_grammar_element *> grammar_rules(parsed_grammar.c_rules());
+        grammar = llama_grammar_init(
+            grammar_rules.data(), grammar_rules.size(), parsed_grammar.symbol_ids.at("root"));
+    }
+
 
     // TODO: replace with ring-buffer
     std::vector<llama_token> last_n_tokens(n_ctx);
@@ -212,8 +293,10 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
     int n_remain   = params.n_predict;
     int n_consumed = 0;
     int n_session_consumed = 0;
+    int n_past_guidance    = 0;
 
     std::vector<llama_token> embd;
+    std::vector<llama_token> embd_guidance;
     std::string res = "";
 
     // do one empty run to warm up the model
@@ -226,15 +309,25 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
     while (n_remain != 0) {
                // predict
         if (embd.size() > 0) {
+            // Note: n_ctx - 4 here is to match the logic for commandline prompt handling via
+            // --prompt or --file which uses the same value.
+            auto max_embd_size = n_ctx - 4;
+            // Ensure the input doesn't exceed the context size by truncating embd if necessary.
+            if ((int)embd.size() > max_embd_size) {
+                auto skipped_tokens = embd.size() - max_embd_size;
+                printf("<<input too long: skipped %zu token%s>>", skipped_tokens, skipped_tokens != 1 ? "s" : "");
+                embd.resize(max_embd_size);
+            }
             // infinite text generation via context swapping
             // if we run out of context:
             // - take the n_keep first tokens from the original prompt (via n_past)
             // - take half of the last (n_ctx - n_keep) tokens and recompute the logits in batches
-            if (n_past + (int) embd.size() > n_ctx) {
+            if (n_past + (int) embd.size() + std::max<int>(0, guidance_offset) > n_ctx) {
                 const int n_left = n_past - params.n_keep;
 
                 // always keep the first token - BOS
                 n_past = std::max(1, params.n_keep);
+                n_past_guidance = std::max(1, params.n_keep + guidance_offset);
 
                 // insert n_left/2 tokens at the start of embd from last_n_tokens
                 embd.insert(embd.begin(), last_n_tokens.begin() + n_ctx - n_left/2 - embd.size(), last_n_tokens.end() - embd.size());
@@ -250,6 +343,7 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
                 //printf("'\n");
                 //printf("\n---\n");
             }
+
 
             // try to reuse a matching prefix from the loaded session instead of re-eval (via n_past)
             if (n_session_consumed < (int) session_tokens.size()) {
@@ -273,8 +367,51 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
                 }
             }
 
-            // evaluate tokens in batches
+ // evaluate tokens in batches
             // embd is typically prepared beforehand to fit within a batch, but not always
+
+            if (ctx_guidance) {
+                int input_size = 0;
+                llama_token* input_buf = NULL;
+
+                if (n_past_guidance < (int) guidance_inp.size()) {
+                    // Guidance context should have the same data with these modifications:
+                    //
+                    // * Replace the initial prompt
+                    // * Shift everything by guidance_offset
+                    embd_guidance = guidance_inp;
+                    if (embd.begin() + original_prompt_len < embd.end()) {
+                        embd_guidance.insert(
+                            embd_guidance.end(),
+                            embd.begin() + original_prompt_len,
+                            embd.end()
+                        );
+                    }
+
+                    input_buf = embd_guidance.data();
+                    input_size = embd_guidance.size();
+                    //fprintf(stderr, "\n---------------------\n");
+                    //for (int i = 0; i < (int) embd_guidance.size(); i++) {
+                        //fprintf(stderr, "%s", llama_token_to_str(ctx, embd_guidance[i]));
+                    //}
+                    //fprintf(stderr, "\n---------------------\n");
+                } else {
+                    input_buf = embd.data();
+                    input_size = embd.size();
+                }
+
+                for (int i = 0; i < input_size; i += params.n_batch) {
+                    int n_eval = std::min(input_size - i, params.n_batch);
+                    if (llama_eval(ctx_guidance, input_buf + i, n_eval, n_past_guidance, params.n_threads)) {
+                        fprintf(stderr, "%s : failed to eval\n", __func__);
+                        return 1;
+                    }
+
+                    n_past_guidance += n_eval;
+                }
+            }
+
+
             for (int i = 0; i < (int) embd.size(); i += params.n_batch) {
                 int n_eval = (int) embd.size() - i;
                 if (n_eval > params.n_batch) {
@@ -294,6 +431,7 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
         }
 
         embd.clear();
+        embd_guidance.clear();
 
         if ((int) embd_inp.size() <= n_consumed) {
             // out of user input, sample next token
@@ -348,7 +486,9 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
                 if (!penalize_nl) {
                     logits[llama_token_nl()] = nl_logit;
                 }
-
+                if (grammar != NULL) {
+                    llama_sample_grammar(ctx, &candidates_p, grammar);
+                }
                 if (temp <= 0) {
                     // Greedy sampling
                     id = llama_sample_token_greedy(ctx, &candidates_p);
@@ -373,7 +513,9 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
                     }
                 }
                 // printf("`%d`", candidates_p.size);
-
+                if (grammar != NULL) {
+                    llama_grammar_accept_token(ctx, grammar, id);
+                }
                 last_n_tokens.erase(last_n_tokens.begin());
                 last_n_tokens.push_back(id);
             }
@@ -408,22 +550,27 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
             res += llama_token_to_str(ctx, id);
         }
 
-        // check for stop prompt
-        if (params.antiprompt.size()) {
-            std::string last_output;
-            for (auto id : last_n_tokens) {
-                last_output += llama_token_to_str(ctx, id);
-            }
-            // Check if each of the reverse prompts appears at the end of the output.
-            for (std::string & antiprompt : params.antiprompt) {
-                    //size_t extra_padding = params.interactive ? 0 : 2;
-                    size_t extra_padding = 2;
+     // if not currently processing queued inputs;
+        if ((int) embd_inp.size() <= n_consumed) {
+            // check for reverse prompt
+            if (params.antiprompt.size()) {
+                std::string last_output;
+                for (auto id : last_n_tokens) {
+                    last_output += llama_token_to_str(ctx, id);
+                }
+
+                // Check if each of the reverse prompts appears at the end of the output.
+                // If we're not running interactively, the reverse prompt might be tokenized with some following characters
+                // so we'll compensate for that by widening the search window a bit.
+                for (std::string & antiprompt : params.antiprompt) {
+                    size_t extra_padding = params.interactive ? 0 : 2;
                     size_t search_start_pos = last_output.length() > static_cast<size_t>(antiprompt.length() + extra_padding)
                         ? last_output.length() - static_cast<size_t>(antiprompt.length() + extra_padding)
                         : 0;
 
                     if (last_output.find(antiprompt.c_str(), search_start_pos) != std::string::npos) {
-                    goto end;
+                        break;
+                    }
                 }
             }
         }
@@ -450,6 +597,11 @@ end:
         llama_print_timings(ctx);
         llama_reset_timings(ctx);
     }
+    if (grammar != NULL) {
+        llama_grammar_free(grammar);
+    }
+
+    llama_backend_free();
 
     strcpy(result, res.c_str()); 
     return 0;
@@ -523,7 +675,9 @@ void save_state(void *ctx, char *dst, char*modes) {
 void* llama_allocate_params(const char *prompt, int seed, int threads, int tokens, int top_k,
                             float top_p, float temp, float repeat_penalty, int repeat_last_n, bool ignore_eos, bool memory_f16, int n_batch, int n_keep, const char** antiprompt, int antiprompt_count,
                              float tfs_z, float typical_p, float frequency_penalty, float presence_penalty, int mirostat, float mirostat_eta, float mirostat_tau, bool penalize_nl, const char *logit_bias, const char *session_file, bool prompt_cache_all, bool mlock, bool mmap,
-                             const char *maingpu,const char *tensorsplit , bool prompt_cache_ro) {
+                             const char *maingpu,const char *tensorsplit , bool prompt_cache_ro, const char *grammar,
+                             float rope_freq_base, float rope_freq_scale, float negative_prompt_scale, const char* negative_prompt
+                             ) {
     gpt_params* params = new gpt_params;
     params->seed = seed;
     params->n_threads = threads;
@@ -539,6 +693,12 @@ void* llama_allocate_params(const char *prompt, int seed, int threads, int token
     params->repeat_penalty = repeat_penalty;
     params->n_batch = n_batch;
     params->n_keep = n_keep;
+    params->grammar = std::string(grammar);
+    params->rope_freq_base = rope_freq_base;
+    params->rope_freq_scale = rope_freq_scale;
+    params->cfg_scale = negative_prompt_scale;
+    params->cfg_negative_prompt = std::string(negative_prompt);
+
     if (maingpu[0] != '\0') { 
         params->main_gpu = std::stoi(maingpu);
     }
@@ -589,20 +749,42 @@ void* llama_allocate_params(const char *prompt, int seed, int threads, int token
     return params;
 }
 
+void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa) {
+   return load_binding_model(fname, n_ctx, n_seed, memory_f16, mlock, embeddings, mmap, low_vram, n_gpu_layers, n_batch, maingpu, tensorsplit, numa);
+}
 
-void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, bool vocab_only, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa) {
+/*
+
+Currently we hard patch the following functions to common.cpp and common.h into the llama library due to a bug into the nvcc/gcc compiler. 
+It seems that copying by value lead to a misalignment of structure and copy - resulting in a mixed up values that we pass by.
+
+See also: https://github.com/ggerganov/llama.cpp/pull/1902
+Keeping them here in sync to generate again patches if needed.
+
+common.h:
+
+struct llama_state {
+    llama_context * ctx;
+    llama_model * model;
+};
+
+common.cpp:
+void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa) {
     // load the model
-    auto lparams = llama_context_default_params();
-
+    gpt_params lparams;
+    llama_model * model;
+    llama_state * state;
+    state = new llama_state;
+    llama_context * ctx;
     lparams.n_ctx      = n_ctx;
     lparams.seed       = n_seed;
-    lparams.f16_kv     = memory_f16;
+    lparams.memory_f16     = memory_f16;
     lparams.embedding  = embeddings;
     lparams.use_mlock  = mlock;
     lparams.n_gpu_layers = n_gpu_layers;
     lparams.use_mmap = mmap;
     lparams.low_vram = low_vram;
-    lparams.vocab_only = vocab_only;
+    lparams.model = std::string(fname);
 
     if (maingpu[0] != '\0') { 
         lparams.main_gpu = std::stoi(maingpu);
@@ -628,19 +810,15 @@ void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool
     lparams.n_batch      = n_batch;
 
     llama_backend_init(numa);
-    void* res = nullptr;
-    try {
 
-        struct llama_model * model = llama_load_model_from_file(fname, &lparams);
-        if (!model) {
-            return nullptr;
-        }
-        struct llama_context * ctx = llama_new_context_with_model(model, &lparams);
-        res = ctx;
-    } catch(std::runtime_error& e) {   
-        fprintf(stderr, "failed %s",e.what());
-        return res;
+    std::tie(model, ctx) = llama_init_from_gpt_params(&lparams);
+    if (model == NULL) {
+        fprintf(stderr, "%s: error: unable to load model\n", __func__);
+        return nullptr;
     }
-
-    return res;
+    state->ctx = ctx;
+    state->model= model;
+    return state;
 }
+
+*/
