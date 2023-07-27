@@ -1,35 +1,37 @@
 package llama
 
 type ModelOptions struct {
-	ContextSize int
-	Seed        int
-	NBatch      int
-	F16Memory   bool
-	MLock       bool
-	MMap        bool
-	LowVRAM     bool
-	Embeddings  bool
-	NUMA        bool
-	NGPULayers  int
-	MainGPU     string
-	TensorSplit string
+	ContextSize   int
+	Seed          int
+	NBatch        int
+	F16Memory     bool
+	MLock         bool
+	MMap          bool
+	LowVRAM       bool
+	Embeddings    bool
+	NUMA          bool
+	NGPULayers    int
+	MainGPU       string
+	TensorSplit   string
+	FreqRopeBase  float32
+	FreqRopeScale float32
 }
 
 type PredictOptions struct {
 	Seed, Threads, Tokens, TopK, Repeat, Batch, NKeep int
-	TopP, Temperature, Penalty                        float64
+	TopP, Temperature, Penalty                        float32
 	F16KV                                             bool
 	DebugMode                                         bool
 	StopPrompts                                       []string
 	IgnoreEOS                                         bool
 
-	TailFreeSamplingZ float64
-	TypicalP          float64
-	FrequencyPenalty  float64
-	PresencePenalty   float64
+	TailFreeSamplingZ float32
+	TypicalP          float32
+	FrequencyPenalty  float32
+	PresencePenalty   float32
 	Mirostat          int
-	MirostatETA       float64
-	MirostatTAU       float64
+	MirostatETA       float32
+	MirostatTAU       float32
 	PenalizeNL        bool
 	LogitBias         string
 	TokenCallback     func(string) bool
@@ -42,11 +44,11 @@ type PredictOptions struct {
 	TensorSplit                 string
 
 	// Rope parameters
-	RopeFreqBase  float64
-	RopeFreqScale float64
+	RopeFreqBase  float32
+	RopeFreqScale float32
 
 	// Negative prompt parameters
-	NegativePromptScale float64
+	NegativePromptScale float32
 	NegativePrompt      string
 }
 
@@ -89,6 +91,18 @@ var DefaultOptions PredictOptions = PredictOptions{
 func SetContext(c int) ModelOption {
 	return func(p *ModelOptions) {
 		p.ContextSize = c
+	}
+}
+
+func WithRopeFreqBase(f float32) ModelOption {
+	return func(p *ModelOptions) {
+		p.FreqRopeBase = f
+	}
+}
+
+func WithRopeFreqScale(f float32) ModelOption {
+	return func(p *ModelOptions) {
+		p.FreqRopeScale = f
 	}
 }
 
@@ -141,19 +155,19 @@ func SetPredictionMainGPU(maingpu string) PredictOption {
 }
 
 // Rope and negative prompt parameters
-func SetRopeFreqBase(rfb float64) PredictOption {
+func SetRopeFreqBase(rfb float32) PredictOption {
 	return func(p *PredictOptions) {
 		p.RopeFreqBase = rfb
 	}
 }
 
-func SetRopeFreqScale(rfs float64) PredictOption {
+func SetRopeFreqScale(rfs float32) PredictOption {
 	return func(p *PredictOptions) {
 		p.RopeFreqScale = rfs
 	}
 }
 
-func SetNegativePromptScale(nps float64) PredictOption {
+func SetNegativePromptScale(nps float32) PredictOption {
 	return func(p *PredictOptions) {
 		p.NegativePromptScale = nps
 	}
@@ -285,14 +299,14 @@ func SetTopK(topk int) PredictOption {
 }
 
 // SetTopP sets the value for nucleus sampling.
-func SetTopP(topp float64) PredictOption {
+func SetTopP(topp float32) PredictOption {
 	return func(p *PredictOptions) {
 		p.TopP = topp
 	}
 }
 
 // SetTemperature sets the temperature value for text generation.
-func SetTemperature(temp float64) PredictOption {
+func SetTemperature(temp float32) PredictOption {
 	return func(p *PredictOptions) {
 		p.Temperature = temp
 	}
@@ -306,7 +320,7 @@ func SetPathPromptCache(f string) PredictOption {
 }
 
 // SetPenalty sets the repetition penalty for text generation.
-func SetPenalty(penalty float64) PredictOption {
+func SetPenalty(penalty float32) PredictOption {
 	return func(p *PredictOptions) {
 		p.Penalty = penalty
 	}
@@ -343,28 +357,28 @@ func NewPredictOptions(opts ...PredictOption) PredictOptions {
 }
 
 // SetTailFreeSamplingZ sets the tail free sampling, parameter z.
-func SetTailFreeSamplingZ(tfz float64) PredictOption {
+func SetTailFreeSamplingZ(tfz float32) PredictOption {
 	return func(p *PredictOptions) {
 		p.TailFreeSamplingZ = tfz
 	}
 }
 
 // SetTypicalP sets the typicality parameter, p_typical.
-func SetTypicalP(tp float64) PredictOption {
+func SetTypicalP(tp float32) PredictOption {
 	return func(p *PredictOptions) {
 		p.TypicalP = tp
 	}
 }
 
 // SetFrequencyPenalty sets the frequency penalty parameter, freq_penalty.
-func SetFrequencyPenalty(fp float64) PredictOption {
+func SetFrequencyPenalty(fp float32) PredictOption {
 	return func(p *PredictOptions) {
 		p.FrequencyPenalty = fp
 	}
 }
 
 // SetPresencePenalty sets the presence penalty parameter, presence_penalty.
-func SetPresencePenalty(pp float64) PredictOption {
+func SetPresencePenalty(pp float32) PredictOption {
 	return func(p *PredictOptions) {
 		p.PresencePenalty = pp
 	}
@@ -378,14 +392,14 @@ func SetMirostat(m int) PredictOption {
 }
 
 // SetMirostatETA sets the mirostat ETA parameter.
-func SetMirostatETA(me float64) PredictOption {
+func SetMirostatETA(me float32) PredictOption {
 	return func(p *PredictOptions) {
 		p.MirostatETA = me
 	}
 }
 
 // SetMirostatTAU sets the mirostat TAU parameter.
-func SetMirostatTAU(mt float64) PredictOption {
+func SetMirostatTAU(mt float32) PredictOption {
 	return func(p *PredictOptions) {
 		p.MirostatTAU = mt
 	}

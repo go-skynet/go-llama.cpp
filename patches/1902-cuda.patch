@@ -1,13 +1,33 @@
 diff --git a/examples/common.cpp b/examples/common.cpp
-index 779605f..2af5f2d 100644
+index 779605f..e3ffbde 100644
 --- a/examples/common.cpp
 +++ b/examples/common.cpp
-@@ -1035,3 +1035,54 @@ bool console_readline(console_state & con_st, std::string & line) {
+@@ -647,19 +647,6 @@ std::tuple<struct llama_model *, struct llama_context *> llama_init_from_gpt_par
+         return std::make_tuple(nullptr, nullptr);
+     }
+ 
+-    if (!params.lora_adapter.empty()) {
+-        int err = llama_model_apply_lora_from_file(model,
+-                                             params.lora_adapter.c_str(),
+-                                             params.lora_base.empty() ? NULL : params.lora_base.c_str(),
+-                                             params.n_threads);
+-        if (err != 0) {
+-            fprintf(stderr, "%s: error: failed to apply lora adapter\n", __func__);
+-            llama_free(lctx);
+-            llama_free_model(model);
+-            return std::make_tuple(nullptr, nullptr);
+-        }
+-    }
+-
+     return std::make_tuple(model, lctx);
+ }
+ 
+@@ -1035,3 +1022,66 @@ bool console_readline(console_state & con_st, std::string & line) {
      fflush(con_st.out);
      return has_more;
  }
 +
-+void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa) {
++void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa,  float rope_freq_base, float rope_freq_scale) {
 +    // load the model
 +    gpt_params lparams;
 +    llama_model * model;
@@ -22,6 +42,18 @@ index 779605f..2af5f2d 100644
 +    lparams.n_gpu_layers = n_gpu_layers;
 +    lparams.use_mmap = mmap;
 +    lparams.low_vram = low_vram;
++    if (rope_freq_base != 0.0f) {
++        lparams.rope_freq_base = rope_freq_base;
++    } else {
++        lparams.rope_freq_base = 1000.0f;
++    }
++
++    if (rope_freq_scale != 0.0f) {
++        lparams.rope_freq_scale = rope_freq_scale;
++    } else {
++        lparams.rope_freq_scale =  1.0f;
++    }
++
 +    lparams.model = std::string(fname);
 +    if (maingpu[0] != '\0') { 
 +        lparams.main_gpu = std::stoi(maingpu);
@@ -59,7 +91,7 @@ index 779605f..2af5f2d 100644
 +}
 \ No newline at end of file
 diff --git a/examples/common.h b/examples/common.h
-index 7086606..9aab561 100644
+index 7086606..ea824b5 100644
 --- a/examples/common.h
 +++ b/examples/common.h
 @@ -150,3 +150,10 @@ void console_init(console_state & con_st);
@@ -72,4 +104,4 @@ index 7086606..9aab561 100644
 +    llama_model * model;
 +};
 +
-+void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa);
++void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa, float rope_freq_base, float rope_freq_scale);
