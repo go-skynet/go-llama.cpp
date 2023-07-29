@@ -790,7 +790,7 @@ void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f
     if (rope_freq_base != 0.0f) {
         lparams.rope_freq_base = rope_freq_base;
     } else {
-        lparams.rope_freq_base = 1000.0f;
+        lparams.rope_freq_base = 10000.0f;
     }
 
     if (rope_freq_scale != 0.0f) {
