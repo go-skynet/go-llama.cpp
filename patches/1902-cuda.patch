@@ -1,5 +1,5 @@
 diff --git a/examples/common.cpp b/examples/common.cpp
-index 779605f..e3ffbde 100644
+index 779605f..492ac29 100644
 --- a/examples/common.cpp
 +++ b/examples/common.cpp
 @@ -647,19 +647,6 @@ std::tuple<struct llama_model *, struct llama_context *> llama_init_from_gpt_par
@@ -45,7 +45,7 @@ index 779605f..e3ffbde 100644
 +    if (rope_freq_base != 0.0f) {
 +        lparams.rope_freq_base = rope_freq_base;
 +    } else {
-+        lparams.rope_freq_base = 1000.0f;
++        lparams.rope_freq_base = 10000.0f;
 +    }
 +
 +    if (rope_freq_scale != 0.0f) {
