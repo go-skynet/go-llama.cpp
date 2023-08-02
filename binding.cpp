@@ -749,8 +749,8 @@ void* llama_allocate_params(const char *prompt, int seed, int threads, int token
     return params;
 }
 
-void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa, float rope_freq_base, float rope_freq_scale) {
-   return load_binding_model(fname, n_ctx, n_seed, memory_f16, mlock, embeddings, mmap, low_vram, n_gpu_layers, n_batch, maingpu, tensorsplit, numa, rope_freq_base, rope_freq_scale);
+void* load_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa, float rope_freq_base, float rope_freq_scale, float rms_norm_eps,  int n_gqa) {
+   return load_binding_model(fname, n_ctx, n_seed, memory_f16, mlock, embeddings, mmap, low_vram, n_gpu_layers, n_batch, maingpu, tensorsplit, numa, rope_freq_base, rope_freq_scale, rms_norm_eps, n_gqa);
 }
 
 /*
@@ -768,11 +768,11 @@ struct llama_state {
     llama_model * model;
 };
 
-void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa, float rope_freq_base, float rope_freq_scale);
+void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa, float rope_freq_base, float rope_freq_scale, float rms_norm_eps,  int n_gqa);
 
 common.cpp:
 
-void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa,  float rope_freq_base, float rope_freq_scale) {
+void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa,  float rope_freq_base, float rope_freq_scale, float rms_norm_eps,  int n_gqa) {
     // load the model
     gpt_params lparams;
     llama_model * model;
@@ -786,6 +786,19 @@ void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f
     lparams.use_mlock  = mlock;
     lparams.n_gpu_layers = n_gpu_layers;
     lparams.use_mmap = mmap;
+
+    // Keep sane defaults
+    if (n_gqa != 0) {
+        lparams.n_gqa = n_gqa;
+    } else {
+        lparams.n_gqa = 1;
+    }
+
+    if (rms_norm_eps != 0.0f) {
+        lparams.rms_norm_eps = rms_norm_eps;
+    } else {
+        lparams.rms_norm_eps = LLAMA_DEFAULT_RMS_EPS;
+    }
     lparams.low_vram = low_vram;
     if (rope_freq_base != 0.0f) {
         lparams.rope_freq_base = rope_freq_base;
