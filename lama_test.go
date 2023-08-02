@@ -23,11 +23,7 @@ var _ = Describe("LLama binding", func() {
 				EnableF16Memory,
 				SetContext(128),
 				SetMMap(true),
-				WithRopeFreqBase(10000.0),
-				WithRopeFreqScale(1),
 				SetNBatch(512),
-				WithGQA(1),
-				SetModelSeed(0),
 			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(model).ToNot(BeNil())
