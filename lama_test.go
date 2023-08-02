@@ -18,14 +18,20 @@ var _ = Describe("LLama binding", func() {
 	})
 	Context("Inferencing", func() {
 		It("Works with "+os.Getenv("TEST_MODEL"), func() {
-			model, err := New(os.Getenv("TEST_MODEL"), EnableF16Memory, SetContext(128), SetMMap(true))
+			model, err := New(
+				os.Getenv("TEST_MODEL"),
+				EnableF16Memory,
+				SetContext(128),
+				SetMMap(true),
+				SetNBatch(512),
+			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(model).ToNot(BeNil())
 			text, err := model.Predict(`Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
 ### Instruction: How much is 2+2?
 
-### Response: `)
+### Response: `, SetRopeFreqBase(10000.0), SetRopeFreqScale(1))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(text).To(ContainSubstring("4"))
 		})
