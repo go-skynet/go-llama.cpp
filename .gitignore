@@ -3,9 +3,13 @@
 /build
 /ggml-metal.metal
 /libbinding.a
+prepare
 
 # just in case
 .DS_Store
 .idea
 .vscode
 Thumbs.db
+
+# model files downloaded by the test script
+ggllm-test-model.bin

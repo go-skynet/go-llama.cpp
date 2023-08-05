@@ -217,6 +217,7 @@ libbinding.a: prepare binding.o llama.cpp/k_quants.o llama.cpp/grammar-parser.o 
 clean:
 	rm -rf *.o
 	rm -rf *.a
+	rm -f prepare
 	$(MAKE) -C llama.cpp clean
 	rm -rf build
 
