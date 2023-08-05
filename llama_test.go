@@ -1,6 +1,7 @@
 package llama_test
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/go-skynet/go-llama.cpp"
@@ -51,6 +52,7 @@ var _ = Describe("LLama binding", func() {
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(l).To(BeNumerically(">", 0))
+				fmt.Printf("Temp Token Dump: %+v", tokens)
 				Expect(l).To(Equal(len(tokens)))
 			})
 		})
