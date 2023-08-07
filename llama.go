@@ -24,7 +24,7 @@ type LLama struct {
 func New(model string, opts ...ModelOption) (*LLama, error) {
 	mo := NewModelOptions(opts...)
 	modelPath := C.CString(model)
-	defer C.free(unsafe.Pointer(defer modelPath))
+	defer C.free(unsafe.Pointer(modelPath)) 
 	result := C.load_model(modelPath,
 		C.int(mo.ContextSize), C.int(mo.Seed),
 		C.bool(mo.F16Memory), C.bool(mo.MLock), C.bool(mo.Embeddings), C.bool(mo.MMap), C.bool(mo.LowVRAM),
