@@ -254,7 +254,7 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 }
 
 // tokenize has an interesting return property: negative lengths (potentially) have meaning. Therefore, return the length seperate from the slice and error - all three can be used together
-func (l *LLama) TokenizeString(text string, opts ...PredictOption) (int, []int, error) {
+func (l *LLama) TokenizeString(text string, opts ...PredictOption) (int32, []int32, error) {
 	po := NewPredictOptions(opts...)
 
 	input := C.CString(text)
@@ -282,14 +282,14 @@ func (l *LLama) TokenizeString(text string, opts ...PredictOption) (int, []int, 
 	tokRet := C.llama_tokenize_string(params, l.state, (*C.int)(unsafe.Pointer(&out[0]))) //, C.int(po.Tokens), true)
 
 	if tokRet < 0 {
-		return int(tokRet), []int{}, fmt.Errorf("llama_tokenize_string returned negative count %d", tokRet)
+		return int32(tokRet), []int32{}, fmt.Errorf("llama_tokenize_string returned negative count %d", tokRet)
 	}
 
-	// more cGo to Go int boxing problems... is there a way to avoid all this 32bit to 64bit madness?
-	gTokRet := int(tokRet)
-	goSlice := make([]int, gTokRet)
-	for i := 0; i < gTokRet; i++ {
-		goSlice[i] = int(out[i])
+	// TODO: Is this loop still required to unbox cgo to go?
+	gTokRet := int32(tokRet)
+	goSlice := make([]int32, gTokRet)
+	for i := int32(0); i < gTokRet; i++ {
+		goSlice[i] = int32(out[i])
 	}
 
 	return gTokRet, goSlice, nil
