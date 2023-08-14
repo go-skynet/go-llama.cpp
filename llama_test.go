@@ -34,7 +34,7 @@ var _ = Describe("LLama binding", func() {
 
 		It("predicts successfully", func() {
 			if testModelPath == "" {
-				Skip("test skipped - only makes sense if testModelPath is set.")
+				Skip("test skipped - only makes sense if the TEST_MODEL environment variable is set.")
 			}
 
 			model, err := getModel()
@@ -49,7 +49,7 @@ var _ = Describe("LLama binding", func() {
 
 		It("tokenizes strings successfully", func() {
 			if testModelPath == "" {
-				Skip("test skipped - only makes sense if testModelPath is set.")
+				Skip("test skipped - only makes sense if the TEST_MODEL environment variable is set.")
 			}
 
 			model, err := getModel()
