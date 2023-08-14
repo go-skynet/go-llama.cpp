@@ -1,8 +1,8 @@
 diff --git a/examples/common.cpp b/examples/common.cpp
-index 3e7c3b6..df96f09 100644
+index 9f8aab9..be2966a 100644
 --- a/examples/common.cpp
 +++ b/examples/common.cpp
-@@ -675,19 +675,6 @@ std::tuple<struct llama_model *, struct llama_context *> llama_init_from_gpt_par
+@@ -684,18 +684,93 @@ std::tuple<struct llama_model *, struct llama_context *> llama_init_from_gpt_par
          return std::make_tuple(nullptr, nullptr);
      }
  
@@ -21,11 +21,7 @@ index 3e7c3b6..df96f09 100644
 -
      return std::make_tuple(model, lctx);
  }
- 
-@@ -1063,3 +1050,90 @@ bool console_readline(console_state & con_st, std::string & line) {
-     fflush(con_st.out);
-     return has_more;
- }
++
 +
 +gpt_params* create_gpt_params(const std::string& fname) {
 +   gpt_params* lparams = new gpt_params;
@@ -115,13 +111,13 @@ index 3e7c3b6..df96f09 100644
 +}
 \ No newline at end of file
 diff --git a/examples/common.h b/examples/common.h
-index 9744842..1110a14 100644
+index 375bc0a..b165b18 100644
 --- a/examples/common.h
 +++ b/examples/common.h
-@@ -155,3 +155,10 @@ void console_init(console_state & con_st);
- void console_cleanup(console_state & con_st);
- void console_set_color(console_state & con_st, console_color_t color);
- bool console_readline(console_state & con_st, std::string & line);
+@@ -112,3 +112,10 @@ std::vector<llama_token> llama_tokenize(struct llama_context * ctx, const std::s
+ 
+ std::tuple<struct llama_model *, struct llama_context *> llama_init_from_gpt_params(const gpt_params & params);
+ struct llama_context_params llama_context_params_from_gpt_params(const gpt_params & params);
 +
 +struct llama_state {
 +    llama_context * ctx;
@@ -129,3 +125,4 @@ index 9744842..1110a14 100644
 +};
 +
 +void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa, float rope_freq_base, float rope_freq_scale, float rms_norm_eps,  int n_gqa);
+\ No newline at end of file
