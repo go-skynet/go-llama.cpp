@@ -24,7 +24,7 @@ type LLama struct {
 func New(model string, opts ...ModelOption) (*LLama, error) {
 	mo := NewModelOptions(opts...)
 	modelPath := C.CString(model)
-	defer C.free(unsafe.Pointer(modelPath))
+	defer C.free(unsafe.Pointer(modelPath)) 
 	result := C.load_model(modelPath,
 		C.int(mo.ContextSize), C.int(mo.Seed),
 		C.bool(mo.F16Memory), C.bool(mo.MLock), C.bool(mo.Embeddings), C.bool(mo.MMap), C.bool(mo.LowVRAM),
@@ -32,7 +32,7 @@ func New(model string, opts ...ModelOption) (*LLama, error) {
 		C.float(mo.FreqRopeBase), C.float(mo.FreqRopeScale),
 		C.float(mo.RMSNormEPS), C.int(mo.GQA),
 	)
-
+	
 	if result == nil {
 		return nil, fmt.Errorf("failed loading model")
 	}
@@ -48,8 +48,11 @@ func (l *LLama) Free() {
 func (l *LLama) LoadState(state string) error {
 	d := C.CString(state)
 	w := C.CString("rb")
-
 	result := C.load_state(l.state, d, w)
+
+	defer C.free(unsafe.Pointer(d))  // free allocated C string
+	defer C.free(unsafe.Pointer(w))  // free allocated C string
+
 	if result != 0 {
 		return fmt.Errorf("error while loading state")
 	}
@@ -63,6 +66,9 @@ func (l *LLama) SaveState(dst string) error {
 
 	C.save_state(l.state, d, w)
 
+	defer C.free(unsafe.Pointer(d))  // free allocated C string
+	defer C.free(unsafe.Pointer(w))  // free allocated C string
+	
 	_, err := os.Stat(dst)
 	return err
 }
