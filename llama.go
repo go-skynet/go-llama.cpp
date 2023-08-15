@@ -259,6 +259,48 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 	return res, nil
 }
 
+// tokenize has an interesting return property: negative lengths (potentially) have meaning. Therefore, return the length seperate from the slice and error - all three can be used together
+func (l *LLama) TokenizeString(text string, opts ...PredictOption) (int32, []int32, error) {
+	po := NewPredictOptions(opts...)
+
+	input := C.CString(text)
+	if po.Tokens == 0 {
+		po.Tokens = 4096 // ???
+	}
+	out := make([]C.int, po.Tokens)
+
+	var fakeDblPtr **C.char
+
+	// copy pasted and modified minimally. Should I simplify down / do we need an "allocate defaults"
+	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
+		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
+		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
+		C.int(po.Batch), C.int(po.NKeep), fakeDblPtr, C.int(0),
+		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
+		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
+		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
+		C.CString(po.MainGPU), C.CString(po.TensorSplit),
+		C.bool(po.PromptCacheRO),
+		C.CString(po.Grammar),
+		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), C.CString(po.NegativePrompt),
+	)
+
+	tokRet := C.llama_tokenize_string(params, l.state, (*C.int)(unsafe.Pointer(&out[0]))) //, C.int(po.Tokens), true)
+
+	if tokRet < 0 {
+		return int32(tokRet), []int32{}, fmt.Errorf("llama_tokenize_string returned negative count %d", tokRet)
+	}
+
+	// TODO: Is this loop still required to unbox cgo to go?
+	gTokRet := int32(tokRet)
+	goSlice := make([]int32, gTokRet)
+	for i := int32(0); i < gTokRet; i++ {
+		goSlice[i] = int32(out[i])
+	}
+
+	return gTokRet, goSlice, nil
+}
+
 // CGo only allows us to use static calls from C to Go, we can't just dynamically pass in func's.
 // This is the next best thing, we register the callbacks in this map and call tokenCallback from
 // the C code. We also attach a finalizer to LLama, so it will unregister the callback when the

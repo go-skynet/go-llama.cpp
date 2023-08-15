@@ -618,6 +618,16 @@ void llama_free_params(void* params_ptr) {
     delete params;
 }
 
+int llama_tokenize_string(void* params_ptr, void* state_pr, int* result) {
+    gpt_params* params_p = (gpt_params*) params_ptr;
+    llama_state* state = (llama_state*) state_pr;
+    llama_context* ctx = state->ctx;
+
+    // TODO: add_bos
+
+    return llama_tokenize(ctx, params_p->prompt.c_str(), result, params_p->n_ctx, true);
+}
+
 
 std::vector<std::string> create_vector(const char** strings, int count) {
     std::vector<std::string>* vec = new std::vector<std::string>;

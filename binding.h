@@ -48,6 +48,8 @@ void llama_free_params(void* params_ptr);
 
 void llama_binding_free_model(void* state);
 
+int llama_tokenize_string(void* params_ptr, void* state_pr, int* result);
+
 int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug);
 
 #ifdef __cplusplus
