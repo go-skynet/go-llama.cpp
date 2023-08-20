@@ -1,8 +1,8 @@
 diff --git a/examples/common.cpp b/examples/common.cpp
-index 9f8aab9..be2966a 100644
+index bd39d92..17ff47e 100644
 --- a/examples/common.cpp
 +++ b/examples/common.cpp
-@@ -684,18 +684,93 @@ std::tuple<struct llama_model *, struct llama_context *> llama_init_from_gpt_par
+@@ -701,18 +701,93 @@ std::tuple<struct llama_model *, struct llama_context *> llama_init_from_gpt_par
          return std::make_tuple(nullptr, nullptr);
      }
  
@@ -37,8 +37,8 @@ index 9f8aab9..be2966a 100644
 +    // load the model
 +    gpt_params * lparams = create_gpt_params(fname);
 +    llama_model * model;
-+    llama_state * state;
-+    state = new llama_state;
++    llama_binding_state * state;
++    state = new llama_binding_state;
 +    llama_context * ctx;
 +    lparams->n_ctx      = n_ctx;
 +    lparams->seed       = n_seed;
@@ -111,7 +111,7 @@ index 9f8aab9..be2966a 100644
 +}
 \ No newline at end of file
 diff --git a/examples/common.h b/examples/common.h
-index 375bc0a..b165b18 100644
+index 375bc0a..7e7f356 100644
 --- a/examples/common.h
 +++ b/examples/common.h
 @@ -112,3 +112,10 @@ std::vector<llama_token> llama_tokenize(struct llama_context * ctx, const std::s
@@ -119,7 +119,7 @@ index 375bc0a..b165b18 100644
  std::tuple<struct llama_model *, struct llama_context *> llama_init_from_gpt_params(const gpt_params & params);
  struct llama_context_params llama_context_params_from_gpt_params(const gpt_params & params);
 +
-+struct llama_state {
++struct llama_binding_state {
 +    llama_context * ctx;
 +    llama_model * model;
 +};
