@@ -35,7 +35,7 @@ void sigint_handler(int signo) {
 
 int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings) {
     gpt_params* params_p = (gpt_params*) params_ptr;
-    llama_state* state = (llama_state*) state_pr;
+    llama_binding_state* state = (llama_binding_state*) state_pr;
     llama_context* ctx = state->ctx;
     gpt_params params = *params_p;
 
@@ -77,7 +77,7 @@ int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings) {
 
 int get_token_embeddings(void* params_ptr, void* state_pr,  int *tokens, int tokenSize, float * res_embeddings) {
     gpt_params* params_p = (gpt_params*) params_ptr;
-    llama_state* state = (llama_state*) state_pr;
+    llama_binding_state* state = (llama_binding_state*) state_pr;
     llama_context* ctx = state->ctx;
     gpt_params params = *params_p;
  
@@ -96,7 +96,7 @@ int get_token_embeddings(void* params_ptr, void* state_pr,  int *tokens, int tok
 
 int eval(void* params_ptr,void* state_pr,char *text) {
     gpt_params* params_p = (gpt_params*) params_ptr;
-    llama_state* state = (llama_state*) state_pr;
+    llama_binding_state* state = (llama_binding_state*) state_pr;
     llama_context* ctx = state->ctx;
 
     auto n_past = 0;
@@ -117,7 +117,7 @@ static llama_context ** g_ctx;
 
 int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
     gpt_params* params_p = (gpt_params*) params_ptr;
-    llama_state* state = (llama_state*) state_pr;
+    llama_binding_state* state = (llama_binding_state*) state_pr;
     llama_context* ctx = state->ctx;
 
     gpt_params params = *params_p;
@@ -608,7 +608,7 @@ end:
 }
 
 void llama_binding_free_model(void *state_ptr) {
-    llama_state* ctx = (llama_state*) state_ptr;
+    llama_binding_state* ctx = (llama_binding_state*) state_ptr;
     llama_free(ctx->ctx);
     delete ctx->model;
 }
@@ -620,7 +620,7 @@ void llama_free_params(void* params_ptr) {
 
 int llama_tokenize_string(void* params_ptr, void* state_pr, int* result) {
     gpt_params* params_p = (gpt_params*) params_ptr;
-    llama_state* state = (llama_state*) state_pr;
+    llama_binding_state* state = (llama_binding_state*) state_pr;
     llama_context* ctx = state->ctx;
 
     // TODO: add_bos
@@ -773,7 +773,7 @@ Keeping them here in sync to generate again patches if needed.
 
 common.h:
 
-struct llama_state {
+struct llama_binding_state {
     llama_context * ctx;
     llama_model * model;
 };
@@ -796,8 +796,8 @@ void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f
     // load the model
     gpt_params * lparams = create_gpt_params(fname);
     llama_model * model;
-    llama_state * state;
-    state = new llama_state;
+    llama_binding_state * state;
+    state = new llama_binding_state;
     llama_context * ctx;
     lparams->n_ctx      = n_ctx;
     lparams->seed       = n_seed;
