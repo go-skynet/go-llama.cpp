@@ -15,8 +15,6 @@ type ModelOptions struct {
 	TensorSplit   string
 	FreqRopeBase  float32
 	FreqRopeScale float32
-	RMSNormEPS    float32
-	GQA           int
 }
 
 type PredictOptions struct {
@@ -63,7 +61,6 @@ var DefaultModelOptions ModelOptions = ModelOptions{
 	Seed:          0,
 	F16Memory:     false,
 	MLock:         false,
-	GQA:           1,
 	Embeddings:    false,
 	MMap:          true,
 	LowVRAM:       false,
@@ -97,18 +94,6 @@ var DefaultOptions PredictOptions = PredictOptions{
 func SetContext(c int) ModelOption {
 	return func(p *ModelOptions) {
 		p.ContextSize = c
-	}
-}
-
-func WithGQA(gqa int) ModelOption {
-	return func(p *ModelOptions) {
-		p.GQA = gqa
-	}
-}
-
-func WithRMSNormEPS(rms float32) ModelOption {
-	return func(p *ModelOptions) {
-		p.RMSNormEPS = rms
 	}
 }
 

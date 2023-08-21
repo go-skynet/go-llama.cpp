@@ -28,9 +28,7 @@ void* load_model(const char *fname,
                  const char *tensorsplit, 
                  bool numa, 
                  float rope_freq_base, 
-                 float rope_freq_scale, 
-                 float rms_norm_eps,  
-                 int n_gqa);
+                 float rope_freq_scale);
 
 int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings);
 
