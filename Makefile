@@ -36,7 +36,7 @@ endif
 BUILD_TYPE?=
 # keep standard at C11 and C++11
 CFLAGS   = -I./llama.cpp -I. -O3 -DNDEBUG -std=c11 -fPIC
-CXXFLAGS = -I./llama.cpp -I. -I./llama.cpp/examples -I./examples -O3 -DNDEBUG -std=c++11 -fPIC
+CXXFLAGS = -I./llama.cpp -I. -I./llama.cpp/common -I./common -O3 -DNDEBUG -std=c++11 -fPIC
 LDFLAGS  =
 
 # warnings
@@ -176,7 +176,7 @@ $(info )
 # Use this if you want to set the default behavior
 
 llama.cpp/grammar-parser.o:
-	cd build && cp -rf examples/CMakeFiles/common.dir/grammar-parser.cpp.o ../llama.cpp/grammar-parser.o
+	cd build && cp -rf common/CMakeFiles/common.dir/grammar-parser.cpp.o ../llama.cpp/grammar-parser.o
 
 llama.cpp/ggml-alloc.o:
 	cd build && cp -rf CMakeFiles/ggml.dir/ggml-alloc.c.o ../llama.cpp/ggml-alloc.o
@@ -201,10 +201,10 @@ llama.cpp/llama.o:
 	cd build && cp -rf CMakeFiles/llama.dir/llama.cpp.o ../llama.cpp/llama.o
 
 llama.cpp/common.o:
-	cd build && cp -rf examples/CMakeFiles/common.dir/common.cpp.o ../llama.cpp/common.o
+	cd build && cp -rf common/CMakeFiles/common.dir/common.cpp.o ../llama.cpp/common.o
 
 binding.o: prepare llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o llama.cpp/grammar-parser.o llama.cpp/ggml-alloc.o
-	$(CXX) $(CXXFLAGS) -I./llama.cpp -I./llama.cpp/examples binding.cpp -o binding.o -c $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) -I./llama.cpp -I./llama.cpp/common binding.cpp -o binding.o -c $(LDFLAGS)
 
 ## https://github.com/ggerganov/llama.cpp/pull/1902
 prepare:
@@ -221,5 +221,5 @@ clean:
 	rm -rf build
 
 test: libbinding.a
-	test -f ggllm-test-model.bin || wget -q https://huggingface.co/TheBloke/open-llama-7B-v2-open-instruct-GGML/resolve/main/open-llama-7b-v2-open-instruct.ggmlv3.q2_K.bin -O ggllm-test-model.bin
+	test -f ggllm-test-model.bin || wget -q https://huggingface.co/klosax/openllama-3b-v2-gguf/resolve/main/openllama-3b-v2-q4_0.gguf -O ggllm-test-model.bin
 	C_INCLUDE_PATH=${INCLUDE_PATH} CGO_LDFLAGS=${CGO_LDFLAGS} LIBRARY_PATH=${LIBRARY_PATH} TEST_MODEL=ggllm-test-model.bin go test -v ./...
