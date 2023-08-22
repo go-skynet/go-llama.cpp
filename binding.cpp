@@ -241,7 +241,7 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
             fprintf(stderr, "%s: negative prompt: '%s'\n", __func__, params.cfg_negative_prompt.c_str());
             fprintf(stderr, "%s: number of tokens in negative prompt = %zu\n", __func__, guidance_inp.size());
             for (int i = 0; i < (int) guidance_inp.size(); i++) {
-                fprintf(stderr, "%6d -> '%s'\n", guidance_inp[i], llama_token_to_str(ctx, guidance_inp[i]));
+                fprintf(stderr, "%6d -> '%s'\n", guidance_inp[i], llama_token_to_str(ctx, guidance_inp[i]).c_str());
             }
     }
 
