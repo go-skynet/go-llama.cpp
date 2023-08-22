@@ -8,6 +8,12 @@ Check out [this](https://about.sourcegraph.com/blog/go/gophercon-2018-adventures
 
 If you are looking for an high-level OpenAI compatible API, check out [here](https://github.com/go-skynet/llama-cli).
 
+## Attention!
+
+Since https://github.com/go-skynet/go-llama.cpp/pull/180 is merged, now go-llama.cpp is not anymore compatible with ggllm file, but it works with the new `gguf` file format. See also the upstream PR: https://github.com/ggerganov/llama.cpp/pull/2398.
+
+If you need to use the `gglm` format, use the https://github.com/go-skynet/go-llama.cpp/releases/tag/pre-gguf tag.
+
 ## Usage
 
 Note: This repository uses git submodules to keep track of [LLama.cpp](https://github.com/ggerganov/llama.cpp).
