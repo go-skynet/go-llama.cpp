@@ -79,9 +79,6 @@ int get_token_embeddings(void* params_ptr, void* state_pr,  int *tokens, int tok
  
     for (int i = 0; i < tokenSize; i++) {
         auto token_str = llama_token_to_str(ctx, tokens[i]);
-        if (token_str.c_str() == "") {
-            continue;
-        }
         std::vector<std::string> my_vector;
         std::string str_token(token_str); // create a new std::string from the char*
         params_p->prompt += str_token;
