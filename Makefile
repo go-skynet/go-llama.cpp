@@ -221,5 +221,5 @@ clean:
 	rm -rf build
 
 test: libbinding.a
-	test -f ggllm-test-model.bin || wget -q https://huggingface.co/TheBloke/open-llama-7B-v2-open-instruct-GGML/resolve/main/open-llama-7b-v2-open-instruct.ggmlv3.q2_K.bin -O ggllm-test-model.bin
+	test -f ggllm-test-model.bin || wget -q https://huggingface.co/klosax/openllama-3b-v2-gguf/resolve/main/openllama-3b-v2-q4_0.gguf -O ggllm-test-model.bin
 	C_INCLUDE_PATH=${INCLUDE_PATH} CGO_LDFLAGS=${CGO_LDFLAGS} LIBRARY_PATH=${LIBRARY_PATH} TEST_MODEL=ggllm-test-model.bin go test -v ./...
