@@ -15,6 +15,9 @@ type ModelOptions struct {
 	TensorSplit   string
 	FreqRopeBase  float32
 	FreqRopeScale float32
+	MulMatQ       *bool
+	LoraBase      string
+	LoraAdapter   string
 }
 
 type PredictOptions struct {
@@ -88,6 +91,12 @@ var DefaultOptions PredictOptions = PredictOptions{
 	MirostatTAU:       5.0,
 	MirostatETA:       0.1,
 	MMap:              true,
+}
+
+func SetMulMatQ(b bool) ModelOption {
+	return func(p *ModelOptions) {
+		p.MulMatQ = &b
+	}
 }
 
 // SetContext sets the context size.

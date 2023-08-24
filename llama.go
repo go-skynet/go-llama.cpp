@@ -25,11 +25,23 @@ func New(model string, opts ...ModelOption) (*LLama, error) {
 	mo := NewModelOptions(opts...)
 	modelPath := C.CString(model)
 	defer C.free(unsafe.Pointer(modelPath))
+	loraBase := C.CString(mo.LoraBase)
+	defer C.free(unsafe.Pointer(loraBase))
+	loraAdapter := C.CString(mo.LoraAdapter)
+	defer C.free(unsafe.Pointer(loraAdapter))
+
+	MulMatQ := true
+
+	if mo.MulMatQ != nil {
+		MulMatQ = *mo.MulMatQ
+	}
+
 	result := C.load_model(modelPath,
 		C.int(mo.ContextSize), C.int(mo.Seed),
 		C.bool(mo.F16Memory), C.bool(mo.MLock), C.bool(mo.Embeddings), C.bool(mo.MMap), C.bool(mo.LowVRAM),
 		C.int(mo.NGPULayers), C.int(mo.NBatch), C.CString(mo.MainGPU), C.CString(mo.TensorSplit), C.bool(mo.NUMA),
 		C.float(mo.FreqRopeBase), C.float(mo.FreqRopeScale),
+		C.bool(MulMatQ), loraAdapter, loraBase,
 	)
 
 	if result == nil {
