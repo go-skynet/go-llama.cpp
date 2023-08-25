@@ -99,6 +99,18 @@ func SetMulMatQ(b bool) ModelOption {
 	}
 }
 
+func SetLoraBase(s string) ModelOption {
+	return func(p *ModelOptions) {
+		p.LoraBase = s
+	}
+}
+
+func SetLoraAdapter(s string) ModelOption {
+	return func(p *ModelOptions) {
+		p.LoraAdapter = s
+	}
+}
+
 // SetContext sets the context size.
 func SetContext(c int) ModelOption {
 	return func(p *ModelOptions) {
