@@ -642,9 +642,9 @@ int llama_tokenize_string(void* params_ptr, void* state_pr, int* result) {
     llama_binding_state* state = (llama_binding_state*) state_pr;
     llama_context* ctx = state->ctx;
 
-    // TODO: add_bos
+    const bool add_bos = llama_vocab_type(ctx) == LLAMA_VOCAB_TYPE_SPM;
 
-    return llama_tokenize(ctx, params_p->prompt.c_str(), result, params_p->n_ctx, true);
+    return llama_tokenize(ctx, params_p->prompt.c_str(), result, params_p->n_ctx, add_bos);
 }
 
 
