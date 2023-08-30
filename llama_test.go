@@ -38,13 +38,11 @@ var _ = Describe("LLama binding", func() {
 			}
 
 			model, err := getModel()
-			text, err := model.Predict(`Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
-### Instruction: How much is 2+2?
-
-### Response: `, SetRopeFreqBase(10000.0), SetRopeFreqScale(1))
-			Expect(err).ToNot(HaveOccurred())
-			Expect(text).To(ContainSubstring("4"))
+			text, err := model.Predict(`[INST] Answer to the following question:
+how much is 2+2?
+[/INST]`)
+			Expect(err).ToNot(HaveOccurred(), text)
+			Expect(text).To(ContainSubstring("4"), text)
 		})
 
 		It("tokenizes strings successfully", func() {
