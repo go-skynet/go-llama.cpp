@@ -1,12 +1,11 @@
 diff --git a/common/common.cpp b/common/common.cpp
-index 53002ba..996ed9f 100644
+index ed09fc2..ced02e8 100644
 --- a/common/common.cpp
 +++ b/common/common.cpp
-@@ -744,3 +744,83 @@ std::string llama_token_to_str(const struct llama_context * ctx, llama_token tok
- 
-     return std::string(result.data(), result.size());
+@@ -1107,3 +1107,82 @@ void dump_non_result_info_yaml(FILE * stream, const gpt_params & params, const l
+     fprintf(stream, "typical_p: %f # default: 1.0\n", params.typical_p);
+     fprintf(stream, "verbose_prompt: %s # default: false\n", params.verbose_prompt ? "true" : "false");
  }
-+
 +
 +gpt_params* create_gpt_params(const std::string& fname,const std::string& lora,const std::string& lora_base) {
 +   gpt_params* lparams = new gpt_params;
@@ -88,14 +87,13 @@ index 53002ba..996ed9f 100644
 +}
 \ No newline at end of file
 diff --git a/common/common.h b/common/common.h
-index 17d271e..15a85a8 100644
+index 5a37968..8b09050 100644
 --- a/common/common.h
 +++ b/common/common.h
-@@ -123,3 +123,11 @@ std::vector<llama_token> llama_tokenize(
- std::string llama_token_to_str(
-         const struct llama_context * ctx,
-                        llama_token   token);
-+
+@@ -165,3 +165,10 @@ std::string get_sortable_timestamp();
+ void dump_non_result_info_yaml(
+     FILE * stream, const gpt_params & params, const llama_context * lctx,
+     const std::string & timestamp, const std::vector<int> & prompt_tokens, const char * model_desc);
 +
 +struct llama_binding_state {
 +    llama_context * ctx;
@@ -103,4 +101,3 @@ index 17d271e..15a85a8 100644
 +};
 +
 +void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa,  float rope_freq_base, float rope_freq_scale, bool mul_mat_q, const char *lora, const char *lora_base);
-\ No newline at end of file
