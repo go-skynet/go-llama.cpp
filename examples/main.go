@@ -16,6 +16,7 @@ var (
 	threads   = 4
 	tokens    = 128
 	gpulayers = 0
+	seed      = -1
 )
 
 func main() {
@@ -26,6 +27,7 @@ func main() {
 	flags.IntVar(&gpulayers, "ngl", 0, "Number of GPU layers to use")
 	flags.IntVar(&threads, "t", runtime.NumCPU(), "number of threads to use during computation")
 	flags.IntVar(&tokens, "n", 512, "number of tokens to predict")
+	flags.IntVar(&seed, "s", -1, "predict RNG seed, -1 for random seed")
 
 	err := flags.Parse(os.Args[1:])
 	if err != nil {
@@ -47,7 +49,7 @@ func main() {
 		_, err := l.Predict(text, llama.Debug, llama.SetTokenCallback(func(token string) bool {
 			fmt.Print(token)
 			return true
-		}), llama.SetTokens(tokens), llama.SetThreads(threads), llama.SetTopK(90), llama.SetTopP(0.86), llama.SetStopWords("llama"))
+		}), llama.SetTokens(tokens), llama.SetThreads(threads), llama.SetTopK(90), llama.SetTopP(0.86), llama.SetStopWords("llama"), llama.SetSeed(seed))
 		if err != nil {
 			panic(err)
 		}
