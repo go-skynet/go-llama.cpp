@@ -44,7 +44,8 @@ int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings) {
         params.seed = time(NULL);
     }
     
-    std::mt19937 rng(params.seed);
+    // no need for a rng
+    // std::mt19937 rng(params.seed);
   
     int n_past = 0;
 
@@ -127,7 +128,8 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
         params.seed = time(NULL);
     }
 
-    std::mt19937 rng(params.seed);
+    // no need for a rng
+    // std::mt19937 rng(params.seed);
 
     if (params.rope_freq_base != 10000.0) {
         fprintf(stderr, "%s: warning: changing RoPE frequency base to %g (default 10000.0)\n", __func__, params.rope_freq_base);
@@ -171,7 +173,8 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
                 return 1;
             }
             session_tokens.resize(n_token_count_out);
-            llama_set_rng_seed(ctx, params.seed);
+            // no need to set the seed here --- we'll always set it later
+            // llama_set_rng_seed(ctx, params.seed);
             if (debug) {
                 fprintf(stderr, "%s: loaded a session with prompt size of %d tokens\n", __func__, (int) session_tokens.size());
             }
@@ -311,6 +314,9 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
         llama_reset_timings(ctx);
     }
     
+    // set the seed before actually predicting
+    llama_set_rng_seed(ctx, params.seed);
+
     while (n_remain != 0) {
                // predict
         if (embd.size() > 0) {

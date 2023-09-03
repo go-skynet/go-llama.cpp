@@ -91,6 +91,8 @@ var DefaultOptions PredictOptions = PredictOptions{
 	MirostatTAU:       5.0,
 	MirostatETA:       0.1,
 	MMap:              true,
+	RopeFreqBase:      10000,
+	RopeFreqScale:     1.0,
 }
 
 func SetMulMatQ(b bool) ModelOption {
