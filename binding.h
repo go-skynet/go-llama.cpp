@@ -29,7 +29,7 @@ void* load_model(const char *fname,
                  bool numa, 
                  float rope_freq_base, 
                  float rope_freq_scale,
-                 bool mul_mat_q, const char *lora, const char *lora_base
+                 bool mul_mat_q, const char *lora, const char *lora_base, bool perplexity
                  );
 
 int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings);
@@ -41,8 +41,10 @@ void* llama_allocate_params(const char *prompt, int seed, int threads, int token
                             int repeat_last_n, bool ignore_eos, bool memory_f16, 
                             int n_batch, int n_keep, const char** antiprompt, int antiprompt_count,
                             float tfs_z, float typical_p, float frequency_penalty, float presence_penalty, int mirostat, float mirostat_eta, float mirostat_tau, bool penalize_nl, const char *logit_bias, const char *session_file, bool prompt_cache_all, bool mlock, bool mmap, const char *maingpu, const char *tensorsplit , 
-                            bool prompt_cache_ro, const char *grammar, float rope_freq_base, float rope_freq_scale, float negative_prompt_scale, const char* negative_prompt
-                            );
+                            bool prompt_cache_ro, const char *grammar, float rope_freq_base, float rope_freq_scale, float negative_prompt_scale, const char* negative_prompt,
+                            int n_draft);
+
+int speculative_sampling(void* params_ptr, void* target_model, void* draft_model, char* result, bool debug);
 
 void llama_free_params(void* params_ptr);
 
