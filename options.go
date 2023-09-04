@@ -18,11 +18,13 @@ type ModelOptions struct {
 	MulMatQ       *bool
 	LoraBase      string
 	LoraAdapter   string
+	Perplexity    bool
 }
 
 type PredictOptions struct {
 	Seed, Threads, Tokens, TopK, Repeat, Batch, NKeep int
 	TopP, Temperature, Penalty                        float32
+	NDraft                                            int
 	F16KV                                             bool
 	DebugMode                                         bool
 	StopPrompts                                       []string
@@ -190,6 +192,18 @@ func SetRopeFreqBase(rfb float32) PredictOption {
 func SetRopeFreqScale(rfs float32) PredictOption {
 	return func(p *PredictOptions) {
 		p.RopeFreqScale = rfs
+	}
+}
+
+func SetNDraft(nd int) PredictOption {
+	return func(p *PredictOptions) {
+		p.NDraft = nd
+	}
+}
+
+func SetPerplexity(b bool) ModelOption {
+	return func(p *ModelOptions) {
+		p.Perplexity = b
 	}
 }
 
