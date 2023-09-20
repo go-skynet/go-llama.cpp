@@ -964,26 +964,39 @@ struct llama_binding_state {
 void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa,  float rope_freq_base, float rope_freq_scale, bool mul_mat_q, const char *lora, const char *lora_base, bool perplexity);
 
 common.cpp:
+
 gpt_params* create_gpt_params(const std::string& fname,const std::string& lora,const std::string& lora_base) {
    gpt_params* lparams = new gpt_params;
     fprintf(stderr, "%s: loading model %s\n", __func__, fname.c_str());
 
     // Initialize the 'model' member with the 'fname' parameter
     lparams->model = fname;
-// Temporary workaround for https://github.com/go-skynet/go-llama.cpp/issues/218
-#ifndef GGML_USE_CUBLAS
     lparams->lora_base = lora_base;
     lparams->lora_adapter = lora;
     if (lparams->lora_adapter.empty()) {
         lparams->use_mmap = false;
     }
-#endif
+    return lparams;
+}
+
+gpt_params* create_gpt_params_cuda(const std::string& fname) {
+   gpt_params* lparams = new gpt_params;
+    fprintf(stderr, "%s: loading model %s\n", __func__, fname.c_str());
+
+    // Initialize the 'model' member with the 'fname' parameter
+    lparams->model = fname;
     return lparams;
 }
 
 void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa,  float rope_freq_base, float rope_freq_scale, bool mul_mat_q, const char *lora, const char *lora_base, bool perplexity) {
     // load the model
-    gpt_params * lparams = create_gpt_params(fname, lora, lora_base);
+    gpt_params * lparams;
+// Temporary workaround for https://github.com/go-skynet/go-llama.cpp/issues/218
+#ifdef GGML_USE_CUBLAS
+    lparams = create_gpt_params_cuda(fname);
+#else
+    lparams = create_gpt_params(fname, lora, lora_base);
+#endif
     llama_model * model;
     llama_binding_state * state;
     state = new llama_binding_state;
@@ -994,8 +1007,8 @@ void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f
     lparams->embedding  = embeddings;
     lparams->use_mlock  = mlock;
     lparams->n_gpu_layers = n_gpu_layers;
-    lparams->use_mmap = mmap;
     lparams->perplexity = perplexity;
+    lparams->use_mmap = mmap;
 
     lparams->low_vram = low_vram;
     if (rope_freq_base != 0.0f) {
