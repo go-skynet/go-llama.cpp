@@ -1,8 +1,8 @@
 diff --git a/common/common.cpp b/common/common.cpp
-index 3138213..af93a32 100644
+index d4f9dbf..4edc500 100644
 --- a/common/common.cpp
 +++ b/common/common.cpp
-@@ -1257,3 +1257,83 @@ void dump_non_result_info_yaml(FILE * stream, const gpt_params & params, const l
+@@ -1259,3 +1259,85 @@ void dump_non_result_info_yaml(FILE * stream, const gpt_params & params, const l
      fprintf(stream, "typical_p: %f # default: 1.0\n", params.typical_p);
      fprintf(stream, "verbose_prompt: %s # default: false\n", params.verbose_prompt ? "true" : "false");
  }
@@ -13,12 +13,14 @@ index 3138213..af93a32 100644
 +
 +    // Initialize the 'model' member with the 'fname' parameter
 +    lparams->model = fname;
++// Temporary workaround for https://github.com/go-skynet/go-llama.cpp/issues/218
++#ifndef GGML_USE_CUBLAS
 +    lparams->lora_base = lora_base;
 +    lparams->lora_adapter = lora;
 +    if (lparams->lora_adapter.empty()) {
 +        lparams->use_mmap = false;
 +    }
-+
++#endif
 +    return lparams;
 +}
 +
@@ -88,7 +90,7 @@ index 3138213..af93a32 100644
 +}
 \ No newline at end of file
 diff --git a/common/common.h b/common/common.h
-index 105fb09..8f60434 100644
+index 85ac0df..eb9d24b 100644
 --- a/common/common.h
 +++ b/common/common.h
 @@ -201,3 +201,10 @@ std::string get_sortable_timestamp();

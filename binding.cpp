@@ -970,12 +970,14 @@ gpt_params* create_gpt_params(const std::string& fname,const std::string& lora,c
 
     // Initialize the 'model' member with the 'fname' parameter
     lparams->model = fname;
+// Temporary workaround for https://github.com/go-skynet/go-llama.cpp/issues/218
+#ifndef GGML_USE_CUBLAS
     lparams->lora_base = lora_base;
     lparams->lora_adapter = lora;
     if (lparams->lora_adapter.empty()) {
         lparams->use_mmap = false;
     }
-
+#endif
     return lparams;
 }
 
