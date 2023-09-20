@@ -332,7 +332,8 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 	return res, nil
 }
 
-// tokenize has an interesting return property: negative lengths (potentially) have meaning. Therefore, return the length seperate from the slice and error - all three can be used together
+// tokenize has an interesting return property: negative lengths (potentially) have meaning.
+// Therefore, return the length seperate from the slice and error - all three can be used together
 func (l *LLama) TokenizeString(text string, opts ...PredictOption) (int32, []int32, error) {
 	po := NewPredictOptions(opts...)
 
@@ -396,14 +397,14 @@ func (l *LLama) SetTokenCallback(callback func(token string) bool) {
 }
 
 var (
-	m         sync.Mutex
+	m         sync.RWMutex
 	callbacks = map[uintptr]func(string) bool{}
 )
 
 //export tokenCallback
 func tokenCallback(statePtr unsafe.Pointer, token *C.char) bool {
-	m.Lock()
-	defer m.Unlock()
+	m.RLock()
+	defer m.RUnlock()
 
 	if callback, ok := callbacks[uintptr(statePtr)]; ok {
 		return callback(C.GoString(token))
