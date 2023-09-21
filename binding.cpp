@@ -98,7 +98,8 @@ int eval(void* params_ptr,void* state_pr,char *text) {
     auto last_n_tokens_data = std::vector<llama_token>(params_p->repeat_last_n, 0);
 
     auto tokens = std::vector<llama_token>(params_p->n_ctx);
-    auto n_prompt_tokens = llama_tokenize(ctx, text, tokens.data(), tokens.size(), true);
+    std::string str = std::string(text);
+    auto n_prompt_tokens = llama_tokenize(ctx, str.data(), str.length(), tokens.data(), tokens.size(), true);
 
     if (n_prompt_tokens < 1) {
         fprintf(stderr, "%s : failed to tokenize prompt\n", __func__);
@@ -814,7 +815,7 @@ int llama_tokenize_string(void* params_ptr, void* state_pr, int* result) {
 
     const bool add_bos = llama_vocab_type(ctx) == LLAMA_VOCAB_TYPE_SPM;
 
-    return llama_tokenize(ctx, params_p->prompt.c_str(), result, params_p->n_ctx, add_bos);
+    return llama_tokenize(ctx, params_p->prompt.data(), params_p->prompt.length(), result, params_p->n_ctx, add_bos);
 }
 
 
