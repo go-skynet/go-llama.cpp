@@ -479,7 +479,9 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
 
         for (auto id : embd) {
             const std::string token_str = llama_token_to_piece(ctx, id);
-            printf("%s", token_str.c_str());
+            if (debug) {
+              printf("%s", token_str.c_str());
+            }
 
             if (embd.size() > 1) {
                 input_tokens.push_back(id);
