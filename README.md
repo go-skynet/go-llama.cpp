@@ -2,7 +2,7 @@
 
 [LLama.cpp](https://github.com/ggerganov/llama.cpp) golang bindings.
 
-The go-llama.cpp bindings are high level, as such most of the work is kept into the C/C++ code to avoid any extra computational cost, be more performant and lastly ease out maintenance, while keeping the usage as simple as possible. 
+The go-llama.cpp bindings are high level, as such most of the work is kept into the C/C++ code to avoid any extra computational cost, be more performant and lastly ease out maintenance, while keeping the usage as simple as possible.
 
 Check out [this](https://about.sourcegraph.com/blog/go/gophercon-2018-adventures-in-cgo-performance) and [this](https://www.cockroachlabs.com/blog/the-cost-and-complexity-of-cgo/) write-ups which summarize the impact of a low-level interface which calls C functions from Go.
 
@@ -57,6 +57,15 @@ BUILD_TYPE=cublas make libbinding.a
 CGO_LDFLAGS="-lcublas -lcudart -L/usr/local/cuda/lib64/" LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run ./examples -m "/model/path/here" -t 14
 ```
 
+### ROCM
+
+To build with ROCM (HIPBLAS):
+
+```
+BUILD_TYPE=hipblas make libbinding.a
+CC=/opt/rocm/llvm/bin/clang CXX=/opt/rocm/llvm/bin/clang++ CGO_LDFLAGS="-O3 --hip-link --rtlib=compiler-rt -unwindlib=libgcc -lrocblas -lhipblas" LIBRARY_PATH=$PWD C_INCLUDE_PATH=$PWD go run ./examples -m "/model/path/here" -ngl 64 -t 32
+```
+
 ### OpenCL
 
 ```
@@ -68,9 +77,9 @@ CGO_LDFLAGS="-lOpenCL -lclblast -L/usr/local/lib64/" LIBRARY_PATH=$PWD C_INCLUDE
 You should see something like this from the output when using the GPU:
 
 ```
-ggml_opencl: selecting platform: 'Intel(R) OpenCL HD Graphics'                                            
-ggml_opencl: selecting device: 'Intel(R) Graphics [0x46a6]'                                               
-ggml_opencl: device FP16 support: true  
+ggml_opencl: selecting platform: 'Intel(R) OpenCL HD Graphics'
+ggml_opencl: selecting device: 'Intel(R) Graphics [0x46a6]'
+ggml_opencl: device FP16 support: true
 ```
 
 ## GPU offloading
