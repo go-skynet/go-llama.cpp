@@ -142,8 +142,9 @@ ifeq ($(BUILD_TYPE),cublas)
 endif
 
 ifeq ($(BUILD_TYPE),hipblas)
-	CXX=/opt/rocm/llvm/bin/clang++
-	CC=/opt/rocm/llvm/bin/clang
+	ROCM_HOME ?= "/opt/rocm"
+	CXX="$(ROCM_HOME)"/llvm/bin/clang++
+	CC="$(ROCM_HOME)"/llvm/bin/clang
 	EXTRA_LIBS=
 	GPU_TARGETS ?= gfx900,gfx90a,gfx1030,gfx1031,gfx1100
 	AMDGPU_TARGETS ?= "$(GPU_TARGETS)"
@@ -204,7 +205,7 @@ llama.cpp/ggml-cuda.o: llama.cpp/ggml.o
 	cd build && cp -rf "$(GGML_CUDA_OBJ_PATH)" ../llama.cpp/ggml-cuda.o
 
 llama.cpp/ggml-opencl.o: llama.cpp/ggml.o
-	cd build && cp -rf CMakeFiles/ggml"$(GGML_BUILD_SUFFIX)".dir/ggml-opencl.cpp.o ../llama.cpp/ggml-opencl.o
+	cd build && cp -rf CMakeFiles/ggml.dir/ggml-opencl.cpp.o ../llama.cpp/ggml-opencl.o
 
 llama.cpp/ggml-metal.o: llama.cpp/ggml.o
 	cd build && cp -rf CMakeFiles/ggml.dir/ggml-metal.m.o ../llama.cpp/ggml-metal.o
