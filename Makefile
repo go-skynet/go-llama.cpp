@@ -70,6 +70,10 @@ ifeq ($(UNAME_S),Haiku)
 	CXXFLAGS += -pthread
 endif
 
+# GPGPU specific
+GGML_CUDA_OBJ_PATH=CMakeFiles/ggml.dir/ggml-cuda.cu.o
+
+
 # Architecture specific
 # TODO: probably these flags need to be tweaked on some architectures
 #       feel free to update the Makefile for your architecture and send a pull request or issue
@@ -137,6 +141,17 @@ ifeq ($(BUILD_TYPE),cublas)
 	EXTRA_TARGETS+=llama.cpp/ggml-cuda.o
 endif
 
+ifeq ($(BUILD_TYPE),hipblas)
+	CXX=/opt/rocm/llvm/bin/clang++
+	CC=/opt/rocm/llvm/bin/clang
+	EXTRA_LIBS=
+	GPU_TARGETS ?= gfx900,gfx90a,gfx1030,gfx1031,gfx1100
+	AMDGPU_TARGETS ?= "$(GPU_TARGETS)"
+	CMAKE_ARGS+=-DLLAMA_HIPBLAS=ON -DAMDGPU_TARGETS="$(AMDGPU_TARGETS)" -DGPU_TARGETS="$(GPU_TARGETS)"
+	EXTRA_TARGETS+=llama.cpp/ggml-cuda.o
+	GGML_CUDA_OBJ_PATH=CMakeFiles/ggml-rocm.dir/ggml-cuda.cu.o
+endif
+
 ifeq ($(BUILD_TYPE),clblas)
 	EXTRA_LIBS=
 	CMAKE_ARGS+=-DLLAMA_CLBLAST=ON
@@ -183,13 +198,13 @@ llama.cpp/ggml-alloc.o:
 
 llama.cpp/ggml.o: prepare
 	mkdir -p build
-	cd build && cmake ../llama.cpp $(CMAKE_ARGS) && VERBOSE=1 cmake --build . --config Release && cp -rf CMakeFiles/ggml.dir/ggml.c.o ../llama.cpp/ggml.o
+	cd build && CC="$(CC)" CXX="$(CXX)" cmake ../llama.cpp $(CMAKE_ARGS) && VERBOSE=1 cmake --build . --config Release && cp -rf CMakeFiles/ggml.dir/ggml.c.o ../llama.cpp/ggml.o
 
 llama.cpp/ggml-cuda.o: llama.cpp/ggml.o
-	cd build && cp -rf CMakeFiles/ggml.dir/ggml-cuda.cu.o ../llama.cpp/ggml-cuda.o
+	cd build && cp -rf "$(GGML_CUDA_OBJ_PATH)" ../llama.cpp/ggml-cuda.o
 
 llama.cpp/ggml-opencl.o: llama.cpp/ggml.o
-	cd build && cp -rf CMakeFiles/ggml.dir/ggml-opencl.cpp.o ../llama.cpp/ggml-opencl.o
+	cd build && cp -rf CMakeFiles/ggml"$(GGML_BUILD_SUFFIX)".dir/ggml-opencl.cpp.o ../llama.cpp/ggml-opencl.o
 
 llama.cpp/ggml-metal.o: llama.cpp/ggml.o
 	cd build && cp -rf CMakeFiles/ggml.dir/ggml-metal.m.o ../llama.cpp/ggml-metal.o
