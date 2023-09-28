@@ -1,0 +1,63 @@
+---
+name: 'GPU tests'
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+
+concurrency:
+  group: ci-gpu-tests-${{ github.head_ref || github.ref }}-${{ github.repository }}
+  cancel-in-progress: true
+
+jobs:
+  ubuntu-latest:
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        go-version: ['1.21.x']
+    steps:
+      - name: Clone
+        uses: actions/checkout@v3
+        with: 
+          submodules: true
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
+      # You can test your matrix by printing the current Go version
+      - name: Display Go version
+        run: go version
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y make wget
+      - name: Dependencies
+        run: |
+          # This fixes libc6-dev installations errors on containers...
+          sudo rm -rfv /run/systemd/system
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential ffmpeg nvidia-cuda-toolkit cmake
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates cmake curl patch
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y pip wget
+      - name: Build and test
+        run: |
+          GPU_TESTS=true BUILD_TYPE=cublas CMAKE_ARGS="-DLLAMA_METAL=OFF -DLLAMA_F16C=OFF -DLLAMA_AVX512=OFF -DLLAMA_AVX2=OFF -DLLAMA_FMA=OFF" \
+          make test 2>&1 | tee test_log.log
+          if grep -q "using CUDA for GPU acceleration" test_log.log; then
+            echo "All good";
+          else
+            echo "No CUDA found";
+            exit 1;
+          fi
+      - name: Release space from worker ♻
+        if: always()
+        run: |
+          sudo rm -rf build || true
+          sudo rm -rf bin || true
+          sudo rm -rf dist || true
+          sudo rm -rf *.log || true
+          make clean || true
