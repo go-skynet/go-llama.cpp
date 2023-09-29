@@ -92,4 +92,29 @@ how much is 2+2?
 			Expect(int(l)).To(Equal(len(tokens)))
 		})
 	})
+
+	Context("Inferencing tests with GPU (using "+testModelPath+") ", Label("gpu"), func() {
+		getModel := func() (*LLama, error) {
+			model, err := New(
+				testModelPath,
+				llama.EnableF16Memory, llama.SetContext(128), llama.EnableEmbeddings, llama.SetGPULayers(10),
+			)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(model).ToNot(BeNil())
+			return model, err
+		}
+
+		It("predicts successfully", func() {
+			if testModelPath == "" {
+				Skip("test skipped - only makes sense if the TEST_MODEL environment variable is set.")
+			}
+
+			model, err := getModel()
+			text, err := model.Predict(`[INST] Answer to the following question:
+how much is 2+2?
+[/INST]`)
+			Expect(err).ToNot(HaveOccurred(), text)
+			Expect(text).To(ContainSubstring("4"), text)
+		})
+	})
 })

@@ -170,6 +170,14 @@ ifdef CLBLAST_DIR
 	CMAKE_ARGS+=-DCLBlast_dir=$(CLBLAST_DIR)
 endif
 
+# TODO: support Windows
+ifeq ($(GPU_TESTS),true)
+	CGO_LDFLAGS="-lcublas -lcudart -L/usr/local/cuda/lib64/"
+	TEST_LABEL=gpu
+else
+	TEST_LABEL=!gpu
+endif
+
 #
 # Print build information
 #
@@ -236,6 +244,8 @@ clean:
 	$(MAKE) -C llama.cpp clean
 	rm -rf build
 
-test: libbinding.a
-	test -f ggllm-test-model.bin || wget -q https://huggingface.co/TheBloke/CodeLlama-7B-Instruct-GGUF/resolve/main/codellama-7b-instruct.Q2_K.gguf -O ggllm-test-model.bin
-	C_INCLUDE_PATH=${INCLUDE_PATH} CGO_LDFLAGS=${CGO_LDFLAGS} LIBRARY_PATH=${LIBRARY_PATH} TEST_MODEL=ggllm-test-model.bin go test -v ./...
+ggllm-test-model.bin:
+	wget -q https://huggingface.co/TheBloke/CodeLlama-7B-Instruct-GGUF/resolve/main/codellama-7b-instruct.Q2_K.gguf -O ggllm-test-model.bin
+
+test: ggllm-test-model.bin libbinding.a
+	C_INCLUDE_PATH=${INCLUDE_PATH} CGO_LDFLAGS=${CGO_LDFLAGS} LIBRARY_PATH=${LIBRARY_PATH} TEST_MODEL=ggllm-test-model.bin go run github.com/onsi/ginkgo/v2/ginkgo --label-filter="$(TEST_LABEL)" --flake-attempts 5 -v -r ./...
