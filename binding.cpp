@@ -513,10 +513,16 @@ int llama_predict(void* params_ptr, void* state_pr, char* result, bool debug) {
                         : 0;
 
                     if (last_output.find(antiprompt, search_start_pos) != std::string::npos) {
+                        is_antiprompt = true;
                         break;
                     }
                 }
             }
+        }
+
+        // found antiprompt
+        if (is_antiprompt) {
+            break;
         }
       
         // end of text token
