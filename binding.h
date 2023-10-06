@@ -21,7 +21,6 @@ void* load_model(const char *fname,
                  bool mlock, 
                  bool embeddings, 
                  bool mmap, 
-                 bool low_vram, 
                  int n_gpu, 
                  int n_batch, 
                  const char *maingpu, 
@@ -29,14 +28,14 @@ void* load_model(const char *fname,
                  bool numa, 
                  float rope_freq_base, 
                  float rope_freq_scale,
-                 bool mul_mat_q, const char *lora, const char *lora_base, bool perplexity
+                 bool mul_mat_q, const char *lora, const char *lora_base, float lora_scale, bool perplexity
                  );
 
 int get_embeddings(void* params_ptr, void* state_pr, float * res_embeddings);
 
 int get_token_embeddings(void* params_ptr, void* state_pr,  int *tokens, int tokenSize, float * res_embeddings);
 
-void* llama_allocate_params(const char *prompt, int seed, int threads, int tokens,
+void* llama_allocate_params(const char *prompt, int seed, int threads, int batch_threads, int tokens,
                             int top_k, float top_p, float temp, float repeat_penalty, 
                             int repeat_last_n, bool ignore_eos, bool memory_f16, 
                             int n_batch, int n_keep, const char** antiprompt, int antiprompt_count,

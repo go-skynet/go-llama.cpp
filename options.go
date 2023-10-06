@@ -7,7 +7,6 @@ type ModelOptions struct {
 	F16Memory     bool
 	MLock         bool
 	MMap          bool
-	LowVRAM       bool
 	Embeddings    bool
 	NUMA          bool
 	NGPULayers    int
@@ -16,6 +15,7 @@ type ModelOptions struct {
 	FreqRopeBase  float32
 	FreqRopeScale float32
 	MulMatQ       *bool
+	LoraScale     float32
 	LoraBase      string
 	LoraAdapter   string
 	Perplexity    bool
@@ -29,6 +29,7 @@ type PredictOptions struct {
 	DebugMode                                         bool
 	StopPrompts                                       []string
 	IgnoreEOS                                         bool
+	BatchThreads                                      int
 
 	TailFreeSamplingZ float32
 	TypicalP          float32
@@ -68,7 +69,6 @@ var DefaultModelOptions ModelOptions = ModelOptions{
 	MLock:         false,
 	Embeddings:    false,
 	MMap:          true,
-	LowVRAM:       false,
 	NBatch:        512,
 	FreqRopeBase:  10000,
 	FreqRopeScale: 1.0,
@@ -79,6 +79,7 @@ var DefaultOptions PredictOptions = PredictOptions{
 	Threads:           4,
 	Tokens:            128,
 	Penalty:           1.1,
+	BatchThreads:      -1,
 	Repeat:            64,
 	Batch:             512,
 	NKeep:             64,
@@ -106,6 +107,18 @@ func SetMulMatQ(b bool) ModelOption {
 func SetLoraBase(s string) ModelOption {
 	return func(p *ModelOptions) {
 		p.LoraBase = s
+	}
+}
+
+func SetBatchThreads(b int) PredictOption {
+	return func(p *PredictOptions) {
+		p.BatchThreads = b
+	}
+}
+
+func SetLoraScale(f float32) ModelOption {
+	return func(p *ModelOptions) {
+		p.LoraScale = f
 	}
 }
 
@@ -217,10 +230,6 @@ func SetNegativePrompt(np string) PredictOption {
 	return func(p *PredictOptions) {
 		p.NegativePrompt = np
 	}
-}
-
-var EnabelLowVRAM ModelOption = func(p *ModelOptions) {
-	p.LowVRAM = true
 }
 
 var EnableNUMA ModelOption = func(p *ModelOptions) {

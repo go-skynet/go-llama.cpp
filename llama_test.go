@@ -71,7 +71,7 @@ how much is 2+2?
 			Expect(err).ToNot(HaveOccurred())
 			Expect(model).ToNot(BeNil())
 			text, err := model.SpeculativeSampling(model2, `[INST] Answer to the following question:
-how much is 2+2?
+Do a simple math calculation: How much is 2+2?
 [/INST]`, llama.SetNDraft(16),
 			)
 			Expect(err).ToNot(HaveOccurred(), text)
@@ -97,7 +97,10 @@ how much is 2+2?
 		getModel := func() (*LLama, error) {
 			model, err := New(
 				testModelPath,
-				llama.EnableF16Memory, llama.SetContext(128), llama.EnableEmbeddings, llama.SetGPULayers(10),
+				llama.EnableF16Memory,
+				llama.SetContext(128),
+				llama.EnableEmbeddings,
+				llama.SetGPULayers(10),
 			)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(model).ToNot(BeNil())
