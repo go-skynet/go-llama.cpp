@@ -227,6 +227,7 @@ llama.cpp/llama.o:
 llama.cpp/common.o:
 	cd build && cp -rf common/CMakeFiles/common.dir/common.cpp.o ../llama.cpp/common.o
 
+
 binding.o: prepare llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o llama.cpp/grammar-parser.o llama.cpp/ggml-alloc.o
 	$(CXX) $(CXXFLAGS) -I./llama.cpp -I./llama.cpp/common binding.cpp -o binding.o -c $(LDFLAGS)
 
@@ -246,7 +247,7 @@ clean:
 	rm -rf build
 
 ggllm-test-model.bin:
-	wget -q https://huggingface.co/TheBloke/CodeLlama-7B-Instruct-GGUF/resolve/main/codellama-7b-instruct.Q2_K.gguf -O ggllm-test-model.bin
+	wget -q https://huggingface.co/TheBloke/CodeLlama-7B-Instruct-GGUF/resolve/main/codellama-7b-instruct.Q5_K_M.gguf -O ggllm-test-model.bin
 
 test: ggllm-test-model.bin libbinding.a
 	C_INCLUDE_PATH=${INCLUDE_PATH} CGO_LDFLAGS=${CGO_LDFLAGS} LIBRARY_PATH=${LIBRARY_PATH} TEST_MODEL=$(abspath ./)/ggllm-test-model.bin go run github.com/onsi/ginkgo/v2/ginkgo --label-filter="$(TEST_LABEL)" -v -r ./...
