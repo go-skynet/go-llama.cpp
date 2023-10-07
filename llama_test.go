@@ -99,7 +99,6 @@ Do a simple math calculation: How much is 2+2?
 				testModelPath,
 				llama.EnableF16Memory,
 				llama.SetContext(128),
-				llama.EnableEmbeddings,
 				llama.SetGPULayers(10),
 			)
 			Expect(err).ToNot(HaveOccurred())
@@ -114,8 +113,12 @@ Do a simple math calculation: How much is 2+2?
 
 			model, err := getModel()
 			text, err := model.Predict(`[INST] Answer to the following question:
-how much is 2+2?
-[/INST]`)
+Do a simple math calculation: How much is 2+2?
+[/INST]`,
+				SetTemperature(1.0),
+				SetTopP(0.8),
+				SetTopK(40),
+			)
 			Expect(err).ToNot(HaveOccurred(), text)
 			Expect(text).To(ContainSubstring("4"), text)
 		})
