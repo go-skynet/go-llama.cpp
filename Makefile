@@ -205,6 +205,9 @@ llama.cpp/grammar-parser.o:
 llama.cpp/ggml-alloc.o:
 	cd build && cp -rf CMakeFiles/ggml.dir/ggml-alloc.c.o ../llama.cpp/ggml-alloc.o
 
+llama.cpp/ggml-backend.o:
+	cd build && cp -rf CMakeFiles/ggml.dir/ggml-backend.c.o ../llama.cpp/ggml-backend.o
+
 llama.cpp/ggml.o: prepare
 	mkdir -p build
 	cd build && CC="$(CC)" CXX="$(CXX)" cmake ../llama.cpp $(CMAKE_ARGS) && VERBOSE=1 cmake --build . --config Release && cp -rf CMakeFiles/ggml.dir/ggml.c.o ../llama.cpp/ggml.o
@@ -228,7 +231,7 @@ llama.cpp/common.o:
 	cd build && cp -rf common/CMakeFiles/common.dir/common.cpp.o ../llama.cpp/common.o
 
 
-binding.o: prepare llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o llama.cpp/grammar-parser.o llama.cpp/ggml-alloc.o
+binding.o: prepare llama.cpp/ggml.o llama.cpp/llama.o llama.cpp/common.o llama.cpp/grammar-parser.o llama.cpp/ggml-backend.o llama.cpp/ggml-alloc.o
 	$(CXX) $(CXXFLAGS) -I./llama.cpp -I./llama.cpp/common binding.cpp -o binding.o -c $(LDFLAGS)
 
 ## https://github.com/ggerganov/llama.cpp/pull/1902
@@ -237,8 +240,8 @@ prepare:
 	patch -p1 < ../patches/1902-cuda.patch
 	touch $@
 
-libbinding.a: prepare binding.o llama.cpp/k_quants.o llama.cpp/grammar-parser.o llama.cpp/ggml-alloc.o $(EXTRA_TARGETS)
-	ar src libbinding.a llama.cpp/ggml.o llama.cpp/k_quants.o $(EXTRA_TARGETS) llama.cpp/ggml-alloc.o llama.cpp/common.o llama.cpp/grammar-parser.o llama.cpp/llama.o binding.o
+libbinding.a: prepare binding.o llama.cpp/k_quants.o llama.cpp/grammar-parser.o llama.cpp/ggml-alloc.o llama.cpp/ggml-backend.o $(EXTRA_TARGETS)
+	ar src libbinding.a llama.cpp/ggml.o llama.cpp/k_quants.o $(EXTRA_TARGETS) llama.cpp/ggml-alloc.o llama.cpp/ggml-backend.o llama.cpp/common.o llama.cpp/grammar-parser.o llama.cpp/llama.o binding.o
 
 clean:
 	rm -rf *.o
