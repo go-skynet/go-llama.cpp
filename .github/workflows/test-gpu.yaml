@@ -45,10 +45,12 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y pip wget
       - name: Build and test
         run: |
+          set -o pipefail
           GPU_TESTS=true BUILD_TYPE=cublas CMAKE_ARGS="-DLLAMA_METAL=OFF -DLLAMA_F16C=OFF -DLLAMA_AVX512=OFF -DLLAMA_AVX2=OFF -DLLAMA_FMA=OFF" \
           make test 2>&1 | tee test_log.log
+          set +o pipefail
           if grep -q "using CUDA for GPU acceleration" test_log.log; then
-            echo "All good";
+            echo "GPU was used";
           else
             echo "No CUDA found";
             exit 1;

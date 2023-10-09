@@ -38,10 +38,10 @@ func New(model string, opts ...ModelOption) (*LLama, error) {
 
 	result := C.load_model(modelPath,
 		C.int(mo.ContextSize), C.int(mo.Seed),
-		C.bool(mo.F16Memory), C.bool(mo.MLock), C.bool(mo.Embeddings), C.bool(mo.MMap), C.bool(mo.LowVRAM),
+		C.bool(mo.F16Memory), C.bool(mo.MLock), C.bool(mo.Embeddings), C.bool(mo.MMap),
 		C.int(mo.NGPULayers), C.int(mo.NBatch), C.CString(mo.MainGPU), C.CString(mo.TensorSplit), C.bool(mo.NUMA),
 		C.float(mo.FreqRopeBase), C.float(mo.FreqRopeScale),
-		C.bool(MulMatQ), loraAdapter, loraBase, C.bool(mo.Perplexity),
+		C.bool(MulMatQ), loraAdapter, loraBase, C.float(mo.LoraScale), C.bool(mo.Perplexity),
 	)
 
 	if result == nil {
@@ -112,7 +112,7 @@ func (l *LLama) TokenEmbeddings(tokens []int, opts ...PredictOption) ([]float32,
 	// float tfs_z, float typical_p, float frequency_penalty, float presence_penalty, int mirostat, float mirostat_eta, float mirostat_tau, bool penalize_nl, const char *logit_bias, const char *session_file, bool prompt_cache_all, bool mlock, bool mmap, const char *maingpu, const char *tensorsplit , bool prompt_cache_ro,
 	// float rope_freq_base, float rope_freq_scale, float negative_prompt_scale, const char* negative_prompt
 	// );
-	params := C.llama_allocate_params(C.CString(""), C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
+	params := C.llama_allocate_params(C.CString(""), C.int(po.Seed), C.int(po.Threads), C.int(po.BatchThreads), C.int(po.Tokens), C.int(po.TopK),
 		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), nil, C.int(0),
@@ -154,7 +154,7 @@ func (l *LLama) Embeddings(text string, opts ...PredictOption) ([]float32, error
 		pass = &reversePrompt[0]
 	}
 
-	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
+	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.BatchThreads), C.int(po.Tokens), C.int(po.TopK),
 		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
@@ -193,7 +193,7 @@ func (l *LLama) Eval(text string, opts ...PredictOption) error {
 		pass = &reversePrompt[0]
 	}
 
-	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
+	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.BatchThreads), C.int(po.Tokens), C.int(po.TopK),
 		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
@@ -238,7 +238,7 @@ func (l *LLama) SpeculativeSampling(ll *LLama, text string, opts ...PredictOptio
 		pass = &reversePrompt[0]
 	}
 
-	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
+	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.BatchThreads), C.int(po.Tokens), C.int(po.TopK),
 		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
@@ -296,7 +296,7 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 		pass = &reversePrompt[0]
 	}
 
-	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
+	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.BatchThreads), C.int(po.Tokens), C.int(po.TopK),
 		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
@@ -346,7 +346,7 @@ func (l *LLama) TokenizeString(text string, opts ...PredictOption) (int32, []int
 	var fakeDblPtr **C.char
 
 	// copy pasted and modified minimally. Should I simplify down / do we need an "allocate defaults"
-	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
+	params := C.llama_allocate_params(input, C.int(po.Seed), C.int(po.Threads), C.int(po.BatchThreads), C.int(po.Tokens), C.int(po.TopK),
 		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), fakeDblPtr, C.int(0),

@@ -1,20 +1,25 @@
 diff --git a/common/common.cpp b/common/common.cpp
-index 2597ba0..e42ae73 100644
+index ec181c6..9ba699b 100644
 --- a/common/common.cpp
 +++ b/common/common.cpp
-@@ -1268,3 +1268,218 @@ void dump_non_result_info_yaml(FILE * stream, const gpt_params & params, const l
+@@ -1345,3 +1345,222 @@ void dump_non_result_info_yaml(FILE * stream, const gpt_params & params, const l
      fprintf(stream, "typical_p: %f # default: 1.0\n", params.typical_p);
      fprintf(stream, "verbose_prompt: %s # default: false\n", params.verbose_prompt ? "true" : "false");
  }
 +
-+gpt_params* create_gpt_params(const std::string& fname,const std::string& lora,const std::string& lora_base) {
++gpt_params* create_gpt_params(const std::string& fname,const std::string& lora,const std::string& lora_base, float lora_scale) {
 +   gpt_params* lparams = new gpt_params;
 +    fprintf(stderr, "%s: loading model %s\n", __func__, fname.c_str());
 +
 +    // Initialize the 'model' member with the 'fname' parameter
 +    lparams->model = fname;
 +    lparams->lora_base = lora_base;
-+    lparams->lora_adapter = lora;
++    if (lora_scale == 0 && !lora_base.empty()) {
++        lora_scale = 1.0f;
++    }
++    if (!lora.empty()) {
++        lparams->lora_adapter.push_back(std::make_tuple(lora, lora_scale));
++    }
 +    if (lparams->lora_adapter.empty()) {
 +        lparams->use_mmap = false;
 +    }
@@ -30,14 +35,14 @@ index 2597ba0..e42ae73 100644
 +    return lparams;
 +}
 +
-+void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa,  float rope_freq_base, float rope_freq_scale, bool mul_mat_q, const char *lora, const char *lora_base, bool perplexity) {
++void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa,  float rope_freq_base, float rope_freq_scale, bool mul_mat_q, const char *lora, const char *lora_base, float lora_scale, bool logits_all) {
 +    // load the model
 +    gpt_params * lparams;
 +// Temporary workaround for https://github.com/go-skynet/go-llama.cpp/issues/218
 +#ifdef GGML_USE_CUBLAS
 +    lparams = create_gpt_params_cuda(fname);
 +#else
-+    lparams = create_gpt_params(fname, lora, lora_base);
++    lparams = create_gpt_params(fname, lora, lora_base, lora_scale);
 +#endif
 +    llama_model * model;
 +    llama_binding_state * state;
@@ -49,10 +54,8 @@ index 2597ba0..e42ae73 100644
 +    lparams->embedding  = embeddings;
 +    lparams->use_mlock  = mlock;
 +    lparams->n_gpu_layers = n_gpu_layers;
-+    lparams->perplexity = perplexity;
++    lparams->logits_all = logits_all;
 +    lparams->use_mmap = mmap;
-+
-+    lparams->low_vram = low_vram;
 +    if (rope_freq_base != 0.0f) {
 +        lparams->rope_freq_base = rope_freq_base;
 +    } else {
@@ -114,8 +117,9 @@ index 2597ba0..e42ae73 100644
 +                                   int   idx) {
 +
 +    struct gpt_params params = *g_params;
++
 +    const int n_ctx   = llama_n_ctx(ctx);
-+    const int n_vocab = llama_n_vocab(ctx);
++    const int n_vocab = llama_n_vocab(llama_get_model(ctx));
 +
 +    const float   temp            = params.temp;
 +    const int32_t top_k           = params.top_k <= 0 ? n_vocab : params.top_k;
@@ -133,7 +137,7 @@ index 2597ba0..e42ae73 100644
 +
 +    llama_token id = 0;
 +
-+    float * logits = llama_get_logits(ctx) + idx * n_vocab;
++    float * logits = llama_get_logits_ith(ctx, idx);
 +
 +    // Apply params.logit_bias map
 +    for (auto it = params.logit_bias.begin(); it != params.logit_bias.end(); it++) {
@@ -184,11 +188,11 @@ index 2597ba0..e42ae73 100644
 +        if (mirostat == 1) {
 +            static float mirostat_mu = 2.0f * mirostat_tau;
 +            const int mirostat_m = 100;
-+            llama_sample_temperature(ctx, &cur_p, temp);
++            llama_sample_temp(ctx, &cur_p, temp);
 +            id = llama_sample_token_mirostat(ctx, &cur_p, mirostat_tau, mirostat_eta, mirostat_m, &mirostat_mu);
 +        } else if (mirostat == 2) {
 +            static float mirostat_mu = 2.0f * mirostat_tau;
-+            llama_sample_temperature(ctx, &cur_p, temp);
++            llama_sample_temp(ctx, &cur_p, temp);
 +            id = llama_sample_token_mirostat_v2(ctx, &cur_p, mirostat_tau, mirostat_eta, &mirostat_mu);
 +        } else {
 +            // Temperature sampling
@@ -196,7 +200,7 @@ index 2597ba0..e42ae73 100644
 +            llama_sample_tail_free  (ctx, &cur_p, tfs_z, 1);
 +            llama_sample_typical    (ctx, &cur_p, typical_p, 1);
 +            llama_sample_top_p      (ctx, &cur_p, top_p, 1);
-+            llama_sample_temperature(ctx, &cur_p, temp);
++            llama_sample_temp(ctx, &cur_p, temp);
 +
 +            {
 +                const int n_top = 10;
@@ -223,10 +227,10 @@ index 2597ba0..e42ae73 100644
 +}
 \ No newline at end of file
 diff --git a/common/common.h b/common/common.h
-index 18aea38..ca7a168 100644
+index 0e2d3fa..9992d2b 100644
 --- a/common/common.h
 +++ b/common/common.h
-@@ -209,3 +209,19 @@ std::string get_sortable_timestamp();
+@@ -221,3 +221,19 @@ std::string get_sortable_timestamp();
  void dump_non_result_info_yaml(
      FILE * stream, const gpt_params & params, const llama_context * lctx,
      const std::string & timestamp, const std::vector<int> & prompt_tokens, const char * model_desc);
@@ -236,7 +240,7 @@ index 18aea38..ca7a168 100644
 +    llama_model * model;
 +};
 +
-+void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, bool low_vram, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa,  float rope_freq_base, float rope_freq_scale, bool mul_mat_q, const char *lora, const char *lora_base, bool perplexity);
++void* load_binding_model(const char *fname, int n_ctx, int n_seed, bool memory_f16, bool mlock, bool embeddings, bool mmap, int n_gpu_layers, int n_batch, const char *maingpu, const char *tensorsplit, bool numa,  float rope_freq_base, float rope_freq_scale, bool mul_mat_q, const char *lora, const char *lora_base, float lora_scale, bool logits_all);
 +
 +llama_token llama_sample_token_binding(
 +                  struct llama_context * ctx,
