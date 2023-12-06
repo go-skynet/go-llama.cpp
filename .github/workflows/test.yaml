@@ -22,7 +22,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install build-essential
       - name: Setup Go ${{ matrix.go-version }}
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
       # You can test your matrix by printing the current Go version
@@ -43,7 +43,7 @@ jobs:
         with: 
           submodules: true
       - name: Setup Go ${{ matrix.go-version }}
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
       # You can test your matrix by printing the current Go version
@@ -64,7 +64,7 @@ jobs:
         with: 
           submodules: true
       - name: Setup Go ${{ matrix.go-version }}
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
       # You can test your matrix by printing the current Go version
