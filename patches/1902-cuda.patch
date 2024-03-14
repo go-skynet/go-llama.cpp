@@ -223,14 +223,13 @@ index 2597ba0..e42ae73 100644
 +}
 \ No newline at end of file
 diff --git a/common/common.h b/common/common.h
-index 18aea38..ca7a168 100644
+index e87ce11..323d6f5 100644
 --- a/common/common.h
 +++ b/common/common.h
-@@ -209,3 +209,19 @@ std::string get_sortable_timestamp();
- void dump_non_result_info_yaml(
+@@ -231,6 +231,22 @@ void dump_non_result_info_yaml(
      FILE * stream, const gpt_params & params, const llama_context * lctx,
      const std::string & timestamp, const std::vector<int> & prompt_tokens, const char * model_desc);
-+
+ 
 +struct llama_binding_state {
 +    llama_context * ctx;
 +    llama_model * model;
@@ -246,3 +245,7 @@ index 18aea38..ca7a168 100644
 +        const std::vector<llama_token> & last_tokens,
 +         std::vector<llama_token_data> & candidates,
 +                                   int   idx = 0);
++
+ //
+ // KV cache utils
+ //
