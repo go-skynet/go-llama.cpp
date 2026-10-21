@@ -91,6 +91,8 @@ func (l *LLama) TokenEmbeddings(tokens []int, opts ...PredictOption) ([]float32,
 	}
 
 	po := NewPredictOptions(opts...)
+	var cstrs cStrings
+	defer cstrs.free()
 
 	outSize := po.Tokens
 	if po.Tokens == 0 {
@@ -112,17 +114,17 @@ func (l *LLama) TokenEmbeddings(tokens []int, opts ...PredictOption) ([]float32,
 	// float tfs_z, float typical_p, float frequency_penalty, float presence_penalty, int mirostat, float mirostat_eta, float mirostat_tau, bool penalize_nl, const char *logit_bias, const char *session_file, bool prompt_cache_all, bool mlock, bool mmap, const char *maingpu, const char *tensorsplit , bool prompt_cache_ro,
 	// float rope_freq_base, float rope_freq_scale, float negative_prompt_scale, const char* negative_prompt
 	// );
-	params := C.llama_allocate_params(C.CString(""), C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
+	params := C.llama_allocate_params(cstrs.add(""), C.int(po.Seed), C.int(po.Threads), C.int(po.Tokens), C.int(po.TopK),
 		C.float(po.TopP), C.float(po.Temperature), C.float(po.Penalty), C.int(po.Repeat),
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), nil, C.int(0),
 		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
-		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
-		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
-		C.CString(po.MainGPU), C.CString(po.TensorSplit),
+		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), cstrs.add(po.LogitBias),
+		cstrs.add(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
+		cstrs.add(po.MainGPU), cstrs.add(po.TensorSplit),
 		C.bool(po.PromptCacheRO),
-		C.CString(po.Grammar),
-		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), C.CString(po.NegativePrompt),
+		cstrs.add(po.Grammar),
+		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), cstrs.add(po.NegativePrompt),
 		C.int(po.NDraft),
 	)
 	ret := C.get_token_embeddings(params, l.state, myArray, C.int(len(tokens)), (*C.float)(&floats[0]))
@@ -139,8 +141,10 @@ func (l *LLama) Embeddings(text string, opts ...PredictOption) ([]float32, error
 	}
 
 	po := NewPredictOptions(opts...)
+	var cstrs cStrings
+	defer cstrs.free()
 
-	input := C.CString(text)
+	input := cstrs.add(text)
 	if po.Tokens == 0 {
 		po.Tokens = 99999999
 	}
@@ -149,7 +153,7 @@ func (l *LLama) Embeddings(text string, opts ...PredictOption) ([]float32, error
 	reversePrompt := make([]*C.char, reverseCount)
 	var pass **C.char
 	for i, s := range po.StopPrompts {
-		cs := C.CString(s)
+		cs := cstrs.add(s)
 		reversePrompt[i] = cs
 		pass = &reversePrompt[0]
 	}
@@ -159,12 +163,12 @@ func (l *LLama) Embeddings(text string, opts ...PredictOption) ([]float32, error
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
 		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
-		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
-		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
-		C.CString(po.MainGPU), C.CString(po.TensorSplit),
+		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), cstrs.add(po.LogitBias),
+		cstrs.add(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
+		cstrs.add(po.MainGPU), cstrs.add(po.TensorSplit),
 		C.bool(po.PromptCacheRO),
-		C.CString(po.Grammar),
-		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), C.CString(po.NegativePrompt),
+		cstrs.add(po.Grammar),
+		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), cstrs.add(po.NegativePrompt),
 		C.int(po.NDraft),
 	)
 
@@ -178,8 +182,10 @@ func (l *LLama) Embeddings(text string, opts ...PredictOption) ([]float32, error
 
 func (l *LLama) Eval(text string, opts ...PredictOption) error {
 	po := NewPredictOptions(opts...)
+	var cstrs cStrings
+	defer cstrs.free()
 
-	input := C.CString(text)
+	input := cstrs.add(text)
 	if po.Tokens == 0 {
 		po.Tokens = 99999999
 	}
@@ -188,7 +194,7 @@ func (l *LLama) Eval(text string, opts ...PredictOption) error {
 	reversePrompt := make([]*C.char, reverseCount)
 	var pass **C.char
 	for i, s := range po.StopPrompts {
-		cs := C.CString(s)
+		cs := cstrs.add(s)
 		reversePrompt[i] = cs
 		pass = &reversePrompt[0]
 	}
@@ -198,12 +204,12 @@ func (l *LLama) Eval(text string, opts ...PredictOption) error {
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
 		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
-		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
-		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
-		C.CString(po.MainGPU), C.CString(po.TensorSplit),
+		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), cstrs.add(po.LogitBias),
+		cstrs.add(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
+		cstrs.add(po.MainGPU), cstrs.add(po.TensorSplit),
 		C.bool(po.PromptCacheRO),
-		C.CString(po.Grammar),
-		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), C.CString(po.NegativePrompt),
+		cstrs.add(po.Grammar),
+		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), cstrs.add(po.NegativePrompt),
 		C.int(po.NDraft),
 	)
 	ret := C.eval(params, l.state, input)
@@ -218,12 +224,14 @@ func (l *LLama) Eval(text string, opts ...PredictOption) error {
 
 func (l *LLama) SpeculativeSampling(ll *LLama, text string, opts ...PredictOption) (string, error) {
 	po := NewPredictOptions(opts...)
+	var cstrs cStrings
+	defer cstrs.free()
 
 	if po.TokenCallback != nil {
 		setCallback(l.state, po.TokenCallback)
 	}
 
-	input := C.CString(text)
+	input := cstrs.add(text)
 	if po.Tokens == 0 {
 		po.Tokens = 99999999
 	}
@@ -233,7 +241,7 @@ func (l *LLama) SpeculativeSampling(ll *LLama, text string, opts ...PredictOptio
 	reversePrompt := make([]*C.char, reverseCount)
 	var pass **C.char
 	for i, s := range po.StopPrompts {
-		cs := C.CString(s)
+		cs := cstrs.add(s)
 		reversePrompt[i] = cs
 		pass = &reversePrompt[0]
 	}
@@ -243,12 +251,12 @@ func (l *LLama) SpeculativeSampling(ll *LLama, text string, opts ...PredictOptio
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
 		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
-		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
-		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
-		C.CString(po.MainGPU), C.CString(po.TensorSplit),
+		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), cstrs.add(po.LogitBias),
+		cstrs.add(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
+		cstrs.add(po.MainGPU), cstrs.add(po.TensorSplit),
 		C.bool(po.PromptCacheRO),
-		C.CString(po.Grammar),
-		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), C.CString(po.NegativePrompt),
+		cstrs.add(po.Grammar),
+		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), cstrs.add(po.NegativePrompt),
 		C.int(po.NDraft),
 	)
 	ret := C.speculative_sampling(params, l.state, ll.state, (*C.char)(unsafe.Pointer(&out[0])), C.bool(po.DebugMode))
@@ -276,12 +284,14 @@ func (l *LLama) SpeculativeSampling(ll *LLama, text string, opts ...PredictOptio
 
 func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 	po := NewPredictOptions(opts...)
+	var cstrs cStrings
+	defer cstrs.free()
 
 	if po.TokenCallback != nil {
 		setCallback(l.state, po.TokenCallback)
 	}
 
-	input := C.CString(text)
+	input := cstrs.add(text)
 	if po.Tokens == 0 {
 		po.Tokens = 99999999
 	}
@@ -291,7 +301,7 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 	reversePrompt := make([]*C.char, reverseCount)
 	var pass **C.char
 	for i, s := range po.StopPrompts {
-		cs := C.CString(s)
+		cs := cstrs.add(s)
 		reversePrompt[i] = cs
 		pass = &reversePrompt[0]
 	}
@@ -301,12 +311,12 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), pass, C.int(reverseCount),
 		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
-		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
-		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
-		C.CString(po.MainGPU), C.CString(po.TensorSplit),
+		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), cstrs.add(po.LogitBias),
+		cstrs.add(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
+		cstrs.add(po.MainGPU), cstrs.add(po.TensorSplit),
 		C.bool(po.PromptCacheRO),
-		C.CString(po.Grammar),
-		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), C.CString(po.NegativePrompt),
+		cstrs.add(po.Grammar),
+		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), cstrs.add(po.NegativePrompt),
 		C.int(po.NDraft),
 	)
 	ret := C.llama_predict(params, l.state, (*C.char)(unsafe.Pointer(&out[0])), C.bool(po.DebugMode))
@@ -336,8 +346,10 @@ func (l *LLama) Predict(text string, opts ...PredictOption) (string, error) {
 // Therefore, return the length seperate from the slice and error - all three can be used together
 func (l *LLama) TokenizeString(text string, opts ...PredictOption) (int32, []int32, error) {
 	po := NewPredictOptions(opts...)
+	var cstrs cStrings
+	defer cstrs.free()
 
-	input := C.CString(text)
+	input := cstrs.add(text)
 	if po.Tokens == 0 {
 		po.Tokens = 4096 // ???
 	}
@@ -351,12 +363,12 @@ func (l *LLama) TokenizeString(text string, opts ...PredictOption) (int32, []int
 		C.bool(po.IgnoreEOS), C.bool(po.F16KV),
 		C.int(po.Batch), C.int(po.NKeep), fakeDblPtr, C.int(0),
 		C.float(po.TailFreeSamplingZ), C.float(po.TypicalP), C.float(po.FrequencyPenalty), C.float(po.PresencePenalty),
-		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), C.CString(po.LogitBias),
-		C.CString(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
-		C.CString(po.MainGPU), C.CString(po.TensorSplit),
+		C.int(po.Mirostat), C.float(po.MirostatETA), C.float(po.MirostatTAU), C.bool(po.PenalizeNL), cstrs.add(po.LogitBias),
+		cstrs.add(po.PathPromptCache), C.bool(po.PromptCacheAll), C.bool(po.MLock), C.bool(po.MMap),
+		cstrs.add(po.MainGPU), cstrs.add(po.TensorSplit),
 		C.bool(po.PromptCacheRO),
-		C.CString(po.Grammar),
-		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), C.CString(po.NegativePrompt),
+		cstrs.add(po.Grammar),
+		C.float(po.RopeFreqBase), C.float(po.RopeFreqScale), C.float(po.NegativePromptScale), cstrs.add(po.NegativePrompt),
 		C.int(po.NDraft),
 	)
 
@@ -424,4 +436,21 @@ func setCallback(statePtr unsafe.Pointer, callback func(string) bool) {
 	} else {
 		callbacks[uintptr(statePtr)] = callback
 	}
+}
+
+// cStrings tracks C strings allocated for a single call so they can be
+// released together once the call has returned.
+type cStrings []*C.char
+
+func (c *cStrings) add(s string) *C.char {
+	cs := C.CString(s)
+	*c = append(*c, cs)
+	return cs
+}
+
+func (c *cStrings) free() {
+	for _, cs := range *c {
+		C.free(unsafe.Pointer(cs))
+	}
+	*c = nil
 }
